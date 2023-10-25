@@ -13,7 +13,7 @@
 
 ## A cross platform GUI-enabled package for fast and efficient analysis of molecular electron density, electrostatic potential, molecular orbitals and much more.
 
-Copyright 2013-2022, Jaime Fernández Rico, Rafael López, Ignacio Ema,
+Copyright 2013-2023, Jaime Fernández Rico, Rafael López, Ignacio Ema,
 Guillermo Ramírez, Anmol Kumar, Sachin D. Yeole, Shridhar R. Gadre
  
 DAM320 is free software: you can redistribute it and/or modify
