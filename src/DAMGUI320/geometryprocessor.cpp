@@ -32,6 +32,15 @@
 #include <QMessageBox>
 #include <QObject>
 #include <QDebug>
+#include "isosurface.h"
+
+auto compareSurfaceByAbsContourValue = [](surface* a, surface* b) {
+    return std::abs(a->getcontourvalue()) > std::abs(b->getcontourvalue());
+};
+
+auto compareIsoSurfaceByAbsContourValue = [](isosurface* a, isosurface* b) {
+    return std::abs(a->getcontourvalue()) > std::abs(b->getcontourvalue());
+};
 
 geomProcessor::geomProcessor(QList<molecule*> *m)
     : arrayBuf(QOpenGLBuffer::VertexBuffer), arrayBuf2(QOpenGLBuffer::VertexBuffer),
@@ -204,8 +213,12 @@ void geomProcessor::drawStructure(QOpenGLShaderProgram *program, QList<molecule*
 
     if (moleculesoffsetindex->length() < indmol+2) // To prevent a nasty error when resizing some dialog windows
         return;
-    int kntmax = 0;
-    int kntmin = 0;
+    QVector<int> kntmax;
+    QVector<int> kntmin;
+    for (int i = 0 ; i < m->at(indmol)->sortedSurfaces.count(); i++){
+        kntmax << 0;
+        kntmin << 0;
+    }
     for (int i = moleculesoffsetindex->at(indmol) ; i < moleculesoffsetindex->at(indmol+1); i++){
         if (allsolidsurface->at(i+1)){
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -214,6 +227,8 @@ void geomProcessor::drawStructure(QOpenGLShaderProgram *program, QList<molecule*
         }
         else{
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND);
         }
         if (alltypeelement->at(i+1) == 0){  // Draws structures
             glEnable(GL_CULL_FACE);
@@ -221,6 +236,7 @@ void geomProcessor::drawStructure(QOpenGLShaderProgram *program, QList<molecule*
                 (GLvoid *) (allindicesoffset->at(i) * sizeof(GLuint)));
         }
         else if (alltypeelement->at(i+1) == 1){  // Draws surfaces
+            glLineWidth(1);
             if (!alltranslucence->at(i+1)){
                 glDisable(GL_CULL_FACE);
                 glEnable(GL_DEPTH_TEST);
@@ -255,13 +271,13 @@ void geomProcessor::drawStructure(QOpenGLShaderProgram *program, QList<molecule*
             glFuncs->glGetQueryObjectuiv(queryID, GL_QUERY_RESULT, &visibleSamples);
             if (visibleSamples > 0){
 //                std::cout << "visible maximum" << "\n";
-                m->at(indmol)->surfaces->at(allsurfindices->at(i+1))->setextremhidden(0,kntmax++,false);
+                m->at(indmol)->sortedSurfaces.at(allsurfindices->at(i+1))->setextremhidden(0,kntmax[allsurfindices->at(i+1)]++,false);
                 glDrawElements(GL_TRIANGLES, allindicesoffset->at(i+1)-allindicesoffset->at(i), GL_UNSIGNED_INT,
                     (GLvoid *) (allindicesoffset->at(i) * sizeof(GLuint)));
             }
             else {
 //                std::cout << "hidden maximum" << "\n";
-                m->at(indmol)->surfaces->at(allsurfindices->at(i+1))->setextremhidden(0,kntmax++,true);
+                m->at(indmol)->sortedSurfaces.at(allsurfindices->at(i+1))->setextremhidden(0,kntmax[allsurfindices->at(i+1)]++,true);
             }
         }
         if (alltypeelement->at(i+1) == 5){  // Draws MESP minima
@@ -273,13 +289,13 @@ void geomProcessor::drawStructure(QOpenGLShaderProgram *program, QList<molecule*
             glFuncs->glGetQueryObjectuiv(queryID, GL_QUERY_RESULT, &visibleSamples);
             if (visibleSamples > 0){
 //                std::cout << "visible minimum" << "\n";
-                m->at(indmol)->surfaces->at(allsurfindices->at(i+1))->setextremhidden(1,kntmin++,false);
+                m->at(indmol)->sortedSurfaces.at(allsurfindices->at(i+1))->setextremhidden(1,kntmin[allsurfindices->at(i+1)]++,false);
                 glDrawElements(GL_TRIANGLES, allindicesoffset->at(i+1)-allindicesoffset->at(i), GL_UNSIGNED_INT,
                     (GLvoid *) (allindicesoffset->at(i) * sizeof(GLuint)));
             }
             else {
 //                std::cout << "hidden minimum" << "\n";
-                m->at(indmol)->surfaces->at(allsurfindices->at(i+1))->setextremhidden(1,kntmin++,true);
+                m->at(indmol)->sortedSurfaces.at(allsurfindices->at(i+1))->setextremhidden(1,kntmin[allsurfindices->at(i+1)]++,true);
             }
         }
     }
@@ -336,43 +352,45 @@ void geomProcessor::loadbuffers(QList<molecule*> *m){
                 alllineswidth->append(0.);
             }
 //            Loads surfaces
-            for (int j = 0 ; j < m->at(i)->surfaces->count() ; j++){
-                if (m->at(i)->surfaces->at(j)->getvisible()){
+            m->at(i)->sortedSurfaces = *m->at(i)->surfaces;
+            std::sort(m->at(i)->sortedSurfaces.begin(), m->at(i)->sortedSurfaces.end(), compareSurfaceByAbsContourValue);
+            for (int j = 0 ; j < m->at(i)->sortedSurfaces.count() ; j++){
+                if (m->at(i)->sortedSurfaces.at(j)->getvisible()){
                     int joffset = allvertices->length();
-                    for (int l = 0 ; l < m->at(i)->surfaces->at(j)->allvertices.length() ; l++){
-                        allvertices->append(m->at(i)->surfaces->at(j)->allvertices.at(l));
+                    for (int l = 0 ; l < m->at(i)->sortedSurfaces.at(j)->allvertices.length() ; l++){
+                        allvertices->append(m->at(i)->sortedSurfaces.at(j)->allvertices.at(l));
                     }
-                    for (int l = 0 ; l < m->at(i)->surfaces->at(j)->allindices.length() ; l++){
-                        allindices->append(m->at(i)->surfaces->at(j)->allindices.at(l) + joffset);
+                    for (int l = 0 ; l < m->at(i)->sortedSurfaces.at(j)->allindices.length() ; l++){
+                        allindices->append(m->at(i)->sortedSurfaces.at(j)->allindices.at(l) + joffset);
                     }
                     ioffset = allindices->count();
                     allindicesoffset->append(ioffset);
                     alltypeelement->append(1);
                     allsurfindices->append(j);
-                    if (m->at(i)->surfaces->at(j)->getsolidsurf()){
+                    if (m->at(i)->sortedSurfaces.at(j)->getsolidsurf()){
                         allsolidsurface->append(true);
                     }
                     else{
                         allsolidsurface->append(false);
                     }
-                    if (m->at(i)->surfaces->at(j)->gettranslucence() && m->at(i)->surfaces->at(j)->getopacity() < 0.99){
+                    if (m->at(i)->sortedSurfaces.at(j)->gettranslucence() && m->at(i)->sortedSurfaces.at(j)->getopacity() < 0.99){
                         alltranslucence->append(true);
                     }
                     else{
                         alltranslucence->append(false);
                     }
                     alllineswidth->append(0.);
-                    if (m->at(i)->surfaces->at(j)->getshowgridbounds()){
+                    if (m->at(i)->sortedSurfaces.at(j)->getshowgridbounds()){
                         int joffset = allvertices->length();
                         ioffset = allindices->count();
-                        for (int l = 0 ; l < m->at(i)->surfaces->at(j)->gridvertices.length() ; l++){
-                            allvertices->append(m->at(i)->surfaces->at(j)->gridvertices.at(l));
+                        for (int l = 0 ; l < m->at(i)->sortedSurfaces.at(j)->gridvertices.length() ; l++){
+                            allvertices->append(m->at(i)->sortedSurfaces.at(j)->gridvertices.at(l));
                         }
-                        for (int l = 0 ; l < m->at(i)->surfaces->at(j)->gridindices.length() ; l++){
-                            allindices->append(m->at(i)->surfaces->at(j)->gridindices.at(l) + joffset);
+                        for (int l = 0 ; l < m->at(i)->sortedSurfaces.at(j)->gridindices.length() ; l++){
+                            allindices->append(m->at(i)->sortedSurfaces.at(j)->gridindices.at(l) + joffset);
                         }
-                        for (int l = 1; l < m->at(i)->surfaces->at(j)->gridindicesoffset.count() ; l++){
-                            allindicesoffset->append(m->at(i)->surfaces->at(j)->gridindicesoffset.at(l) + ioffset);
+                        for (int l = 1; l < m->at(i)->sortedSurfaces.at(j)->gridindicesoffset.count() ; l++){
+                            allindicesoffset->append(m->at(i)->sortedSurfaces.at(j)->gridindicesoffset.at(l) + ioffset);
                             alltypeelement->append(2);
                             allsurfindices->append(j);
                             allsolidsurface->append(false);
@@ -380,17 +398,17 @@ void geomProcessor::loadbuffers(QList<molecule*> *m){
                             alllineswidth->append(1.);
                         }
                     }
-                    if (m->at(i)->surfaces->at(j)->getshowlocalmax()){
+                    if (m->at(i)->sortedSurfaces.at(j)->getshowlocalmax()){
                         int joffset = allvertices->length();
                         ioffset = allindices->count();
-                        for (int l = 0 ; l < m->at(i)->surfaces->at(j)->allverticesextrema[0].length() ; l++){
-                            allvertices->append(m->at(i)->surfaces->at(j)->allverticesextrema[0].at(l));
+                        for (int l = 0 ; l < m->at(i)->sortedSurfaces.at(j)->allverticesextrema[0].length() ; l++){
+                            allvertices->append(m->at(i)->sortedSurfaces.at(j)->allverticesextrema[0].at(l));
                         }
-                        for (int l = 0 ; l < m->at(i)->surfaces->at(j)->allindicesextrema[0].length() ; l++){
-                            allindices->append(m->at(i)->surfaces->at(j)->allindicesextrema[0].at(l) + joffset);
+                        for (int l = 0 ; l < m->at(i)->sortedSurfaces.at(j)->allindicesextrema[0].length() ; l++){
+                            allindices->append(m->at(i)->sortedSurfaces.at(j)->allindicesextrema[0].at(l) + joffset);
                         }
-                        for (int l = 1; l < m->at(i)->surfaces->at(j)->allindicesoffsetextrema[0].count() ; l++){
-                            allindicesoffset->append(m->at(i)->surfaces->at(j)->allindicesoffsetextrema[0].at(l) + ioffset);
+                        for (int l = 1; l < m->at(i)->sortedSurfaces.at(j)->allindicesoffsetextrema[0].count() ; l++){
+                            allindicesoffset->append(m->at(i)->sortedSurfaces.at(j)->allindicesoffsetextrema[0].at(l) + ioffset);
                             alltypeelement->append(4);
                             allsurfindices->append(j);
                             allsolidsurface->append(true);
@@ -398,17 +416,17 @@ void geomProcessor::loadbuffers(QList<molecule*> *m){
                             alllineswidth->append(1.);
                         }
                     }
-                    if (m->at(i)->surfaces->at(j)->getshowlocalmin()){
+                    if (m->at(i)->sortedSurfaces.at(j)->getshowlocalmin()){
                         int joffset = allvertices->length();
                         ioffset = allindices->count();
-                        for (int l = 0 ; l < m->at(i)->surfaces->at(j)->allverticesextrema[1].length() ; l++){
-                            allvertices->append(m->at(i)->surfaces->at(j)->allverticesextrema[1].at(l));
+                        for (int l = 0 ; l < m->at(i)->sortedSurfaces.at(j)->allverticesextrema[1].length() ; l++){
+                            allvertices->append(m->at(i)->sortedSurfaces.at(j)->allverticesextrema[1].at(l));
                         }
-                        for (int l = 0 ; l < m->at(i)->surfaces->at(j)->allindicesextrema[1].length() ; l++){
-                            allindices->append(m->at(i)->surfaces->at(j)->allindicesextrema[1].at(l) + joffset);
+                        for (int l = 0 ; l < m->at(i)->sortedSurfaces.at(j)->allindicesextrema[1].length() ; l++){
+                            allindices->append(m->at(i)->sortedSurfaces.at(j)->allindicesextrema[1].at(l) + joffset);
                         }
-                        for (int l = 1; l < m->at(i)->surfaces->at(j)->allindicesoffsetextrema[1].count() ; l++){
-                            allindicesoffset->append(m->at(i)->surfaces->at(j)->allindicesoffsetextrema[1].at(l) + ioffset);
+                        for (int l = 1; l < m->at(i)->sortedSurfaces.at(j)->allindicesoffsetextrema[1].count() ; l++){
+                            allindicesoffset->append(m->at(i)->sortedSurfaces.at(j)->allindicesoffsetextrema[1].at(l) + ioffset);
                             alltypeelement->append(5);
                             allsurfindices->append(j);
                             allsolidsurface->append(true);
@@ -420,43 +438,45 @@ void geomProcessor::loadbuffers(QList<molecule*> *m){
             }
 //            Loads grid isosurfaces
             for (int j = 0 ; j < m->at(i)->grids->count() ; j++){
-                for (int k = 0 ; k < m->at(i)->grids->at(j)->surfaces->count() ; k++){
-                    if (m->at(i)->grids->at(j)->surfaces->at(k)->isvisible()){
+                QList<isosurface*> sortedIsoSurfaces = *m->at(i)->grids->at(j)->surfaces;
+                std::sort(sortedIsoSurfaces.begin(), sortedIsoSurfaces.end(), compareIsoSurfaceByAbsContourValue);
+                for (int k = 0 ; k < sortedIsoSurfaces.count() ; k++){
+                    if (sortedIsoSurfaces.at(k)->isvisible()){
                         int joffset = allvertices->length();
-                        for (int l = 0 ; l < m->at(i)->grids->at(j)->surfaces->at(k)->allvertices.length() ; l++){
-                            allvertices->append(m->at(i)->grids->at(j)->surfaces->at(k)->allvertices.at(l));
+                        for (int l = 0 ; l < sortedIsoSurfaces.at(k)->allvertices.length() ; l++){
+                            allvertices->append(sortedIsoSurfaces.at(k)->allvertices.at(l));
                         }
-                        for (int l = 0 ; l < m->at(i)->grids->at(j)->surfaces->at(k)->allindices.length() ; l++){
-                            allindices->append(m->at(i)->grids->at(j)->surfaces->at(k)->allindices.at(l) + joffset);
+                        for (int l = 0 ; l < sortedIsoSurfaces.at(k)->allindices.length() ; l++){
+                            allindices->append(sortedIsoSurfaces.at(k)->allindices.at(l) + joffset);
                         }
                         ioffset = allindices->count();
                         allindicesoffset->append(ioffset);
                         alltypeelement->append(1);
                         allsurfindices->append(k);
-                        if (m->at(i)->grids->at(j)->surfaces->at(k)->getsolidsurf()){
+                        if (sortedIsoSurfaces.at(k)->getsolidsurf()){
                             allsolidsurface->append(true);
                         }
                         else{
                             allsolidsurface->append(false);
                         }
-                        if (m->at(i)->grids->at(j)->surfaces->at(k)->gettranslucence() && m->at(i)->grids->at(j)->surfaces->at(k)->getopacity() < 0.99){
+                        if (sortedIsoSurfaces.at(k)->gettranslucence() && sortedIsoSurfaces.at(k)->getopacity() < 0.99){
                             alltranslucence->append(true);
                         }
                         else{
                             alltranslucence->append(false);
                         }
                         alllineswidth->append(0.);
-                        if (m->at(i)->grids->at(j)->surfaces->at(k)->getshowgridbound()){
+                        if (sortedIsoSurfaces.at(k)->getshowgridbound()){
                             int joffset = allvertices->length();
                             ioffset = allindices->count();
-                            for (int l = 0 ; l < m->at(i)->grids->at(j)->surfaces->at(k)->gridvertices.length() ; l++){
-                                allvertices->append(m->at(i)->grids->at(j)->surfaces->at(k)->gridvertices.at(l));
+                            for (int l = 0 ; l < sortedIsoSurfaces.at(k)->gridvertices.length() ; l++){
+                                allvertices->append(sortedIsoSurfaces.at(k)->gridvertices.at(l));
                             }
-                            for (int l = 0 ; l < m->at(i)->grids->at(j)->surfaces->at(k)->gridindices.length() ; l++){
-                                allindices->append(m->at(i)->grids->at(j)->surfaces->at(k)->gridindices.at(l) + joffset);
+                            for (int l = 0 ; l < sortedIsoSurfaces.at(k)->gridindices.length() ; l++){
+                                allindices->append(sortedIsoSurfaces.at(k)->gridindices.at(l) + joffset);
                             }
-                            for (int l = 1; l < m->at(i)->grids->at(j)->surfaces->at(k)->gridindicesoffset.count() ; l++){
-                                allindicesoffset->append(m->at(i)->grids->at(j)->surfaces->at(k)->gridindicesoffset.at(l) + ioffset);
+                            for (int l = 1; l < sortedIsoSurfaces.at(k)->gridindicesoffset.count() ; l++){
+                                allindicesoffset->append(sortedIsoSurfaces.at(k)->gridindicesoffset.at(l) + ioffset);
                                 alltypeelement->append(2);
                                 allsurfindices->append(k);
                                 allsolidsurface->append(false);
@@ -605,24 +625,6 @@ void geomProcessor::checkbuffers(){
 //
 void geomProcessor::applytranslucence(int i){
     double f = 0.75; // Or some other factor
-//    glDisable(GL_CULL_FACE);
-//    glEnable(GL_DEPTH_TEST);
-//    if (alltypeelement->at(i+1) == 1){  // This is to keep the front faces brighter thatn the back faces
-//        glFrontFace(GL_CCW);     // Positive contour faces are counterclockwise
-//    }
-//    else{
-//        glFrontFace(GL_CW);    // Negative contour faces are clockwise
-//    }
-//    glDrawElements(GL_TRIANGLES, allindicesoffset->at(i+1)-allindicesoffset->at(i), GL_UNSIGNED_INT,
-//            (GLvoid *) (allindicesoffset->at(i) * sizeof(GLuint)));
-//    //	First view of surfaces
-//    glEnable(GL_BLEND);
-//    glDisable(GL_CULL_FACE);
-//    glDepthFunc(GL_LESS);
-////    glBlendFunc(GL_ZERO, GL_ONE);
-//    glBlendFunc(GL_ONE, GL_ZERO);
-//    glDrawElements(GL_TRIANGLES, allindicesoffset->at(i+1)-allindicesoffset->at(i), GL_UNSIGNED_INT,
-//            (GLvoid *) (allindicesoffset->at(i) * sizeof(GLuint)));
     //	Second view of surfaces: render with alpha = f*alpha
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);

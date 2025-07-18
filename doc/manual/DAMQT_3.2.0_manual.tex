@@ -61,7 +61,8 @@
 % Calligraphic letters
 \usepackage{calligra,mathrsfs}
 
-\usepackage{showlabels}
+% Package to show actual labels of figures, sections and tables. To be used in combination with \showlabelfont in the first line after \begin{document}
+% \usepackage{showlabels}
 
 %\linenumbers
 \topmargin -1cm
@@ -82,7 +83,7 @@ Anmol Kumar\footnote{Department of Chemistry, Indian Institute of Technology Kan
 Kanpur 208016, India}}
 
 \begin{document}
-\renewcommand{\showlabelfont}{\small\slshape\color{red}}
+% \renewcommand{\showlabelfont}{\small\slshape\color{red}}
 \newcommand{\azul}[1]{{\color{blue}{#1}}}
 \newcommand{\llaves}[1]{{\{#1\}}}
 \definecolor{negro}{rgb}{0,0,0}
@@ -505,9 +506,15 @@ If a version other than 4.5 (but $\ge 3.3$) is required, modify both 4.5 and 450
 \subsection{Windows installation \label{sec:1.2}\index{installation!windows}}
 
 The MS-Windows version can also be installed using \texttt{cmake}, but an autoinstall file,
-{\it DAMQT\_3.2.0\_setup.exe}, is provided with the package. Simply click on this file and follow the installation instructions.
+{\it DAMQT320\_setup.exe}, is provided with the package. Simply click on this file and follow the installation instructions.
 
-The Samples folder will be installed in the {\it AppData/Local} directory.
+To enable parallel computing, a minimal installation of cygwin64 must be present
+in the \texttt{C:\textbackslash{}cygwin64} folder\index{windows!parallel}. The files required for minimal cygwin are included
+in the compressed file \texttt{damdir/windows/cygwin64\_min.zip}\index{windows!cygwin}. The installer
+will ask the user if the MPI are desired. In affirmative case, the installer will 
+ask for the zip file containing the minimal cygwin installation.
+
+The Samples folder will be installed in the \texttt{AppData\textbackslash{}Local} directory.
 
 To prevent unintended data loss, this folder will not be removed when uninstalling DAMQT.
 If necessary, it must be deleted manually.
@@ -3194,8 +3201,8 @@ EPIC requires atomic charges to be assigned to the guest molecules
 by the user or derived from a charge model available in Open Babel, provided that  
 the package is installed and functioning correctly.  
 
-User-supplied charges can be loaded from a file or manually entered using the  
-editor --see fig \ref{fig:4_10_3}. If imported, charges are read from a file,  
+User-supplied charges can be loaded from a file or manually 
+entered --see fig \ref{fig:4_10_3}. If imported, charges are read from a file,  
 with DAMQT-generated {\it .mltmod} files suggested by default. However, users  
 may also provide charges in any text file containing pairs of {\it atom symbol}  
 and {\it charge}, with each pair appearing on a separate line. In this case, the  
@@ -3210,7 +3217,7 @@ listed in the Combo Box built into the GUI --see fig \ref{fig:4_10_5}.
  
 % \hspace*{-2mm}
 \begin{tabular}{lcr}
-\begin{minipage}{.45\linewidth}
+\begin{minipage}{.41\linewidth}
     \begin{figure}[H]
         \begin{center}
 %             \hspace*{-5mm}
@@ -3221,7 +3228,7 @@ listed in the Combo Box built into the GUI --see fig \ref{fig:4_10_5}.
     \end{figure}
 \end{minipage}
 &
-\begin{minipage}{.45\linewidth}
+\begin{minipage}{.41\linewidth}
     \begin{figure}[H]
         \begin{center}
             \vspace*{0mm}
@@ -3233,16 +3240,17 @@ listed in the Combo Box built into the GUI --see fig \ref{fig:4_10_5}.
 \end{minipage}
 \end{tabular}
 
-\vspace*{5mm}
+\vspace*{3mm}
 
 To carry out the geometry optimization with EPIC, the button labeled as {\it Exec} must be pressed. During the optimization process,  
 a status message reading {\it Computing...} will appear in the bottom-left corner of the window,  
 and the evolving geometry will be dynamically updated in the canvas.  
 The message will disappear upon completion, and a pop-up box will confirm that the optimization has finished.
 
-\vspace*{5mm}{\bf Important:}\vspace*{5mm}  
+\vspace*{2mm}{\bf WARNING:}  
 Please wait until the finalization message appears, as there is a slight overhead time after the  
 optimization steps have been completed.
+\vspace*{2mm}
 
 The optimization process generates a file with the extension  
 {\it .xyz\_frames}, which stores the geometries corresponding to each step of the  
@@ -3267,8 +3275,6 @@ before loading new molecules into the canvas.
 
 Appendix \ref{A6} discusses several strategies to facilitate the use of cluster optimization.
 
-
-\vspace*{5mm}
 
 \begin{tabular}{lcr}
 \hspace*{-3mm}
@@ -4009,7 +4015,7 @@ from those of \xml{ } file. In \out{ } file they appear separated in two sets co
 to positive and negative spin components, whereas in the \xml{ } file natural orbitals 
 are stored. As a consequence, the two interfaces will yield different orbitals.
 
-{\bf IMPORTANT:} in some cases, when dealing with systems with symmetry, MOLPRO yields wrong 
+{\bf WARNING:} in some cases, when dealing with systems with symmetry, MOLPRO yields wrong 
 signs in some symmetry orbitals, leading to incorrect results. This can be noticed as an 
 erroneous total electron charge when carrying out the DAM partition of density. 
 This is a flaw in MOLPRO output file in these cases. The bug is fixed by running 

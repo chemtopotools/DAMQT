@@ -36,6 +36,7 @@
 #include <QFileDialog>
 #include <QGLFormat>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLVertexArrayObject>
 #include <QLabel>
 #include <QMatrix4x4>
 #include <QMessageBox>
@@ -159,6 +160,7 @@ signals:
     void endmakingmovie();
     void endrecording();
     void remove_distance(QVector<centerData>*, int);
+    void resetbohr();
     void resetlastselectangles();
     void resetlastselectdihedrals();
     void resetlastselectdist();
@@ -350,6 +352,7 @@ private:
     QOpenGLFramebufferObject *fbo;
 
     QOpenGLShaderProgram program;           // Shaders program
+    QOpenGLShaderProgram shader;           // Shaders program
     QOpenGLTexture *texture;
 
     QPixmap pixmap;

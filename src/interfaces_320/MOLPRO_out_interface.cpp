@@ -34,6 +34,7 @@
 #include <cctype>
 #include <locale>
 #include <vector>
+#include <sstream>
 using namespace std;
 
 #define abs(n) ((n>0) ? n : -n)
@@ -58,7 +59,7 @@ static int i,j,k,ii,jj,ki;
 static int len, ncen, nbasis, izn;
 static double zn[MXCEN], x[MXCEN], y[MXCEN], z[MXCEN];
 static bool lMOLPRO = false, lzn = false, lcoord = false, lbasis = false, lden = false, lorba = false,
-    lorbb = false, lorbenera = false, lorbenerb = false;
+    lorbb = false, lorbbstart = false, lorbenera = false, lorbenerb = false;
 static double facts[50];
 
 static string lvals[9]={"s","p","d","f","g","h","i","j","k"};
@@ -84,6 +85,9 @@ int seekl(string s);
 int seekm(string s);
 int coefsim(string s);
 bool pairCompare(const std::pair<int, double>& firstElem, const std::pair<int, double>& secondElem);
+bool isFloatingPoint(const std::string& token);
+bool startsWithFloat(const std::string& line);
+std::string to_lower(const std::string& str);
 
 // Structures
 struct basesimstr{
@@ -233,7 +237,6 @@ int main(int argc,char *argv[])
         exit(1);
     }
 
-
     s = outpath + newprojectname + ".ggbs";
     ggbsfilename = s;
     ofstream ggbsfile(s.c_str(),ios::out);
@@ -242,7 +245,6 @@ int main(int argc,char *argv[])
         outimportfile << "In MOLPRO_out_interface: unable to open file " << s << endl ;
         exit(1);
     }
-
 
     s = outpath + newprojectname + ".den";
     ofstream denfile(s.c_str(),ios::out);
@@ -509,10 +511,11 @@ int main(int argc,char *argv[])
         }
 
 //    ORBITALS
-//         if (!lorba && (!(s.find("orbitals")==string::npos)) && (!(s.find("read from record")==string::npos)) &&  ((s.find("beta")==string::npos))){
-        if (!lorba && (!(s.find("orbitals orb read from record")==string::npos)) ||  (!(s.find("orbitals orba read from record")==string::npos))
-                ||  (!(s.find("orbitals gaorba read from record")==string::npos))){
+        if (!lorba && (!(to_lower(s).find("orbitals orb read from record")==string::npos))
+                ||  (!(to_lower(s).find("orbitals orba read from record")==string::npos))
+                ||  (!(to_lower(s).find("orbitals gaorba read from record")==string::npos))){
 /*        seeks for alpha or natural orbitals */
+//            outimportfile << "seeks for alpha or natural orbitals" << endl;
             double orbmet;
             int orbasim;
             OM = new double[nfun*nfun];
@@ -538,22 +541,24 @@ int main(int argc,char *argv[])
                 int indrepirold = -1;
                 indrepir = 0;
                 while(getline(inputfile,s)){
-//cerr << rtrim(s).length() << " s = " << s << endl;
                     if (s.length() == 0) continue;
-                    if (!(s.find("***")==string::npos)){
+                    if (!(s.find("***")==string::npos) || (!startsWithFloat(s) && !(to_lower(s).find("orbitals")==string::npos))){
+                        if (indrepir > 0 && !(to_lower(s).find("orbitals")==string::npos)) lorbbstart = true;
                         // Stores the block of the previous IR
                         if (kntir != kntrepirred[indrepir]*kntrepirred[indrepir]){
                             cerr << "Error reading " << indrepir << " block of " << indstateaMO << "." << orbasim
                                 << " alpha MO matrix" << endl ;
                             lorba = true;
-                            break;      // desists reading alpha orbitals
+                            outimportfile << "WARNING!!! desists reading alpha orbitals" << endl;
+                            break;
                         }
                         if (!(indrepir == numrepir-1)){
                             cerr << "Number of IR blocks read in alpha orbitals matrix " << indrepir+1 << " wrong, it should be " << numrepir << endl;
                             outimportfile << "Number of IR blocks read in alpha orbitals matrix " << indrepir+1 <<
                                     " wrong, it should be " << numrepir << endl;
                             lorba = true;
-                            break;      // desists reading alpha orbitals
+                            outimportfile << "WARNING!!! desists reading alpha orbitals" << endl;
+                            break;
                         }
                         kntir = 0;
                         for(i = offset ; i < offset+kntrepirred[indrepir] ; i++){
@@ -567,6 +572,7 @@ int main(int argc,char *argv[])
                         }
                         offset += kntrepirred[indrepir];
                         lorba = true;
+//                        outimportfile << "alpha or natural orbitals found" << endl;
                         break;
                     }
                     else if (!(s.find("SYMMETRY BLOCK")==string::npos)){
@@ -579,7 +585,8 @@ int main(int argc,char *argv[])
                                 cerr << "Error reading block no. " << indrepir << " of MO matrix of state " << indstateaMO << "." << orbasim
                                     << endl ;
                                 lorba = true;
-                                break;      // desists reading alpha orbitals
+                                outimportfile << "WARNING!!! desists reading alpha orbitals" << endl;
+                                break;
                             }
                             kntir = 0;
                             for(i = offset ; i < offset+kntrepirred[indrepirold] ; i++){
@@ -602,6 +609,7 @@ int main(int argc,char *argv[])
                         orbsim = new double[kntrepirred[indrepir]*kntrepirred[indrepir]];
                     }
                     else if (rtrim(s).length() > 12){      // Reads the block of the current IR
+                        if (!startsWithFloat(s)) continue;
                         len = s.length();
                         char *tokenPrt, *ptr = new char [len+1], *newtoken;
                         s.copy(ptr,len,0);
@@ -620,8 +628,8 @@ int main(int argc,char *argv[])
             }
             kntorb = offset;
             ofstream aorbfile;
-            s = outpath + newprojectname + ".GAorba";
-            aorbfile.open(s.c_str(),ios::out);
+            ss = outpath + newprojectname + ".GAorba";
+            aorbfile.open(ss.c_str(),ios::out);
             if (!aorbfile) {
                 cerr << "In MOLPRO_out_interface: unable to open file " << s << endl ;
                 outimportfile << "In MOLPRO_out_interface: unable to open file " << s << endl ;
@@ -659,9 +667,12 @@ int main(int argc,char *argv[])
             }
             aorbfile.close();
         }
-        if (!lorbb && (!(s.find("Orbitals orbb read from record")==string::npos))
-                || (!(s.find("orbitals gaorbb read from record")==string::npos))){
+        if ((!lorbb && (!(to_lower(s).find("orbitals orbb read from record")==string::npos))
+                ||  (!(to_lower(s).find("orbitals orbb read from record")==string::npos))
+                ||  (!(to_lower(s).find("orbitals gaorbb read from record")==string::npos))) || lorbbstart){
 /*    seeks for beta orbitals */
+            lorbbstart = false;
+//            outimportfile << "seeks for beta orbitals" << endl;
             double orbmet;
             int orbbsim;
             OM = new double[nfun*nfun];
@@ -695,14 +706,16 @@ int main(int argc,char *argv[])
                             cerr << "Error reading " << indrepir << " block of " << indstatebMO << "." << orbbsim
                                 << " beta MO matrix" << endl ;
                             lorbb = true;
-                            break;      // desists reading beta orbitals
+                            outimportfile << "WARNING!!! desists reading beta orbitals" << endl;
+                            break;
                         }
                         if (!(indrepir == numrepir-1)){
                             cerr << "Number of IR blocks read in alpha orbitals matrix " << indrepir+1 << " wrong, it should be " << numrepir << endl;
                             outimportfile << "Number of IR blocks read in alpha orbitals matrix " << indrepir+1 <<
                                     " wrong, it should be " << numrepir << endl;
                             lorbb = true;
-                            break;      // desists reading beta orbitals
+                            outimportfile << "WARNING!!! desists reading beta orbitals" << endl;
+                            break;
                         }
                         kntir = 0;
                         for(i = offset ; i < offset+kntrepirred[indrepir] ; i++){
@@ -716,6 +729,7 @@ int main(int argc,char *argv[])
                         }
                         offset += kntrepirred[indrepir];
                         lorbb = true;
+//                        outimportfile << "beta orbitals found" << endl;
                         break;
                     }
                     else if (!(s.find("SYMMETRY BLOCK")==string::npos)){
@@ -728,7 +742,8 @@ int main(int argc,char *argv[])
                                 cerr << "Error reading " << indrepirold << " block of " << indstatebMO << "." << orbbsim
                                     << " MO matrix" << endl ;
                                 lorbb = true;
-                                break;      // desists reading beta orbitals
+                                outimportfile << "WARNING!!! desists reading beta orbitals" << endl;
+                                break;
                             }
                             kntir = 0;
                             for(i = offset ; i < offset+kntrepirred[indrepirold] ; i++){
@@ -740,8 +755,7 @@ int main(int argc,char *argv[])
                                     }
                                 }
                             }
-                            offset += kntrepirred[indrepirold];
-                        }
+                            offset += kntrepirred[indrepirold];              }
                         state = atoi(s.substr(ipos+1,1).c_str());
                         kntir = 0;
                         if (!orbsim){
@@ -751,6 +765,7 @@ int main(int argc,char *argv[])
                         orbsim = new double[kntrepirred[indrepir]*kntrepirred[indrepir]];
                     }
                     else if (rtrim(s).length() > 12){      // Reads the block of the current IR
+                        if (!startsWithFloat(s)) continue;
                         len = s.length();
                         char *tokenPrt, *ptr = new char [len+1], *newtoken;
                         s.copy(ptr,len,0);
@@ -769,11 +784,11 @@ int main(int argc,char *argv[])
             }
             kntorb = offset;
             ofstream aorbfile;
-            s = outpath + newprojectname + ".GAorbb";
-            aorbfile.open(s.c_str(),ios::out);
+            ss= outpath + newprojectname + ".GAorbb";
+            aorbfile.open(ss.c_str(),ios::out);
             if (!aorbfile) {
-                cerr << "In MOLPRO_out_interface: unable to open file " << s << endl ;
-                outimportfile << "In MOLPRO_out_interface: unable to open file " << s << endl ;
+                cerr << "In MOLPRO_out_interface: unable to open file " << ss << endl ;
+                outimportfile << "In MOLPRO_out_interface: unable to open file " << ss << endl ;
                 lorbb = true;
                 continue;
             }
@@ -841,14 +856,14 @@ int main(int argc,char *argv[])
             }
             offset = 0;
             delete [] ptr;
+            kntir = 0;
             while (!lden){
                 double (*dsim) = NULL;
                 int indrepirold = -1;
                 indrepir = 0;
                 while(getline(inputfile,s)){
-//cerr << rtrim(s).length() << " s = " << s << endl;
-                    if (s.length() == 0) continue;
-                    if (!(s.find("***")==string::npos)){
+                    if (rtrim(s).length() < 3) continue;
+                    if (!(s.find("***")==string::npos) || (!startsWithFloat(s) && (to_lower(s).find("block")==string::npos))){
                         // Stores the block of the last IR
                         if (kntir != kntrepirred[indrepir]*kntrepirred[indrepir]){
                             cerr << "Error reading " << indrepir << " block of " << indstate << "." << statesim
@@ -882,7 +897,6 @@ int main(int argc,char *argv[])
                         indrepirold = indrepir;
                         ipos = s.find(".");
                         indrepir = atoi(s.substr(ipos-1,1).c_str())-1;
-
                         // Stores the block of the previous IR
                         if (indrepir > 0){
                             if (kntir != kntrepirred[indrepirold]*kntrepirred[indrepirold]){
@@ -916,6 +930,7 @@ int main(int argc,char *argv[])
                         dsim = new double[kntrepirred[indrepir]*kntrepirred[indrepir]];
                     }
                     else if (rtrim(s).length() > 12){      // Reads the block of the current IR
+                        if (!startsWithFloat(s)) continue;
                         len = s.length();
                         char *tokenPrt, *ptr = new char [len+1], *newtoken;
                         s.copy(ptr,len,0);
@@ -948,6 +963,7 @@ int main(int argc,char *argv[])
             denfile.close();
         }
     }
+
     if (!lbasis){
         cerr << "Basis set data not included in " <<  MOLPROfiles + ".out file " << endl;
         outimportfile << "Basis set data not included in " <<  MOLPROfiles + ".out file "  << endl;
@@ -962,7 +978,6 @@ int main(int argc,char *argv[])
     clock_t endTime = clock();
     clock_t clockTicksTaken = endTime - startTime;
     double timeInSeconds = clockTicksTaken / (double) CLOCKS_PER_SEC;
-
 /*   Prints out some statistics  */
     outimportfile << "MOLPRO_interface output" << endl;
     outimportfile << flush ;
@@ -1095,6 +1110,7 @@ void readoptimizedgeometry(ifstream * inputfile, ofstream * outimportfile, ofstr
     string s;
     float unitsconversion = 1.;
     while(getline(*inputfile,s) && !lcoord){
+
 /*    seek for atomic numbers and coordinates of the centers */
         if( !(s.find("Current geometry")==string::npos) ) {
             lcoord = true;
@@ -1201,7 +1217,6 @@ void readbasisset(ifstream * inputfile, ofstream * outimportfile, ofstream * ggb
                 kntline++;
                 s.append(ss);
             }
-
             nbasis = 0;
             int kprim = 0, kcntbas = 1;
             primexp = new double [ncen*MXPRIMCENT];
@@ -1225,7 +1240,6 @@ void readbasisset(ifstream * inputfile, ofstream * outimportfile, ofstream * ggb
             while (strtok_s(NULL," ",&newtoken) != NULL) {
                 knt++;
             }
-
             if (knt != 4){
                 cerr << "Error reading basis set in line " << kntline << endl ;
                 *outimportfile << "Error reading basis set in line " << kntline  << endl ;
@@ -1654,3 +1668,31 @@ bool pairCompare(const std::pair<int, double>& firstElem, const std::pair<int, d
 }
 // End of function pairCompare
 
+// Function isFloatingPoint
+bool isFloatingPoint(const std::string& token) {
+    char* endptr = nullptr;
+    std::strtod(token.c_str(), &endptr);
+    return endptr != token.c_str() && *endptr == '\0';
+}
+// End of function isFloatingPoint
+
+// Function pairCompare
+bool startsWithFloat(const std::string& line) {
+    std::istringstream iss(line);
+    std::string token;
+    while (iss >> token) {
+        // First non-empty word
+        return isFloatingPoint(token);
+    }
+    return false;
+}
+// End of function pairCompare
+
+// Function to_lower
+std::string to_lower(const std::string& str) {
+    std::string lowered = str;
+    std::transform(lowered.begin(), lowered.end(), lowered.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    return lowered;
+}
+// End of function to_lower

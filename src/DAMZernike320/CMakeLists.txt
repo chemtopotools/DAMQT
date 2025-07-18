@@ -32,13 +32,13 @@ add_library(DAMZernike_mods   DAMZernike320_GLOBAL.F90   Zernike-Jacobi_ckplm.F9
 # Create binaries
 # ===============
 foreach (p ${DAMZernike320_PROGRAMS})
-    if (UNIX)
+    if (UNIX AND NOT CYGWIN)
         add_executable(${p}.exe "${p}.F90")
         list (APPEND DAMZernike320_EXECUTABLES ${p}.exe )
-    else (UNIX)  # To prevent double .exe extension
+    else (UNIX AND NOT CYGWIN)  # To prevent double .exe extension
         add_executable(${p} "${p}.F90")
         list (APPEND DAMZernike320_EXECUTABLES ${p} )
-    endif (UNIX)
+    endif (UNIX AND NOT CYGWIN)
 endforeach (p)
 
 

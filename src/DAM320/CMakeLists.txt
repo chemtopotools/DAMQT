@@ -32,35 +32,35 @@ add_library(DAMGLOBAL_mods DAM320_GLOBAL.F90)
 # Create binaries
 # ===============
 foreach (p ${DAM320_PROGRAMS})
-    if (UNIX)
-	add_executable(${p}.exe "${p}.F90")
-	list (APPEND DAM320_EXECUTABLES ${p}.exe )
-    else (UNIX)  # To prevent double .exe extension
+    if (UNIX AND NOT CYGWIN)
+        add_executable(${p}.exe "${p}.F90")
+        list (APPEND DAM320_EXECUTABLES ${p}.exe )
+    else (UNIX AND NOT CYGWIN)  # To prevent double .exe extension
         add_executable(${p} "${p}.F90")
         list (APPEND DAM320_EXECUTABLES ${p} )
-    endif (UNIX)
+    endif (UNIX AND NOT CYGWIN)
 endforeach (p)
 
 foreach (p ${utilities_PROGRAMS})
-    if (UNIX)
-	add_executable(${p}.exe "${p}.F90")
-	list (APPEND utilities_EXECUTABLES ${p}.exe )
-    else (UNIX)  # To prevent double .exe extension
+    if (UNIX AND NOT CYGWIN)
+        add_executable(${p}.exe "${p}.F90")
+        list (APPEND utilities_EXECUTABLES ${p}.exe )
+    else (UNIX AND NOT CYGWIN)  # To prevent double .exe extension
         add_executable(${p} "${p}.F90")
         list (APPEND utilities_EXECUTABLES ${p} )
-    endif (UNIX)
+    endif (UNIX AND NOT CYGWIN)
 endforeach (p)
 
 # Links binaries to modules
 # =========================
 foreach (p ${DAM320_EXECUTABLES})
-	target_link_libraries("${p}" DAMGLOBAL_mods)
-	message("Adds ${p}")
+    target_link_libraries("${p}" DAMGLOBAL_mods)
+    message("Adds ${p}")
 endforeach (p)
 
 foreach (p ${utilities_EXECUTABLES})
-	target_link_libraries("${p}" DAMGLOBAL_mods)
-	message("Adds ${p}")
+    target_link_libraries("${p}" DAMGLOBAL_mods)
+    message("Adds ${p}")
 endforeach (p)
 
 # install executables and scripts

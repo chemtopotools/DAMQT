@@ -47,8 +47,13 @@
 #include "widgetsubclasses.h"
 #include "VertexNormalData.h"
 
-# define pi           3.14159265358979323846    // pi
-# define LOGBASE      1.08                      // base for logaritmics scale
+#ifndef pi
+#define pi 3.14159265358979323846  // pi
+#endif
+
+#ifndef LOGBASE
+#define LOGBASE 1.08                      // base for logaritmics scale
+#endif
 
 #if __cplusplus <= 199711L
     #define nullpointer NULL

@@ -51,9 +51,11 @@ set( DAMGUI320_SRCS
    ./surface.cpp
    ./translations.cpp
    ./viewer2D.cpp
+   ./viewerdialog.cpp
    ./viewport.cpp
    ./VVBuffer.cpp 
    ./widgetsubclasses.cpp
+   ./run_mpi.sh
   )
 
 # another list, this time it includes all header files that should be treated with moc (Qt's meta-object compiler)
@@ -83,6 +85,7 @@ set( DAMGUI320_MOC_HDRS
    ${DAMGUI320_INCLUDE_DIR}/surface.h
    ${DAMGUI320_INCLUDE_DIR}/translations.h
    ${DAMGUI320_INCLUDE_DIR}/viewer2D.h
+   ${DAMGUI320_INCLUDE_DIR}/viewerdialog.h
    ${DAMGUI320_INCLUDE_DIR}/viewport.h
    ${DAMGUI320_INCLUDE_DIR}/widgetsubclasses.h
   )
@@ -134,14 +137,27 @@ if (Qt5Widgets_FOUND)
 
     QT5_ADD_RESOURCES( DAMGUI320_RC_SRCS ${DAMGUI320_RCS} )
     QT5_WRAP_CPP( DAMGUI320_MOC_SRCS ${DAMGUI320_MOC_HDRS} )
-    if (UNIX)
-        set (DAMGUI320_EXECUTABLE "DAMQT320.exe" )
-    else (UNIX)  # To prevent double .exe extension
-        set (DAMGUI320_EXECUTABLE "DAMQT320" )
-    endif (UNIX)
+
+    set(DAMGUI320_EXECUTABLE DAMQT320)
+
+# Add ejecutable (constant target name)
     add_executable(${DAMGUI320_EXECUTABLE} ${DAMGUI320_SRCS} ${DAMGUI320_MOC_SRCS} ${DAMGUI320_RC_SRCS})
+
+# Change the name of the binary file in case of UNIX
+    if (UNIX AND NOT CYGWIN)
+        set_target_properties(${DAMGUI320_EXECUTABLE} PROPERTIES OUTPUT_NAME "DAMQT320.exe")
+        message(NOTICE "
+            To run in QtCreator, it is necessary to select DAMQT (without .exe) in the Run configuration combo of the Kit
+            Also add the path to the Qt5 library in the top of LD_LIBRARY_PATH if necessary
+            ")
+    endif()
+
+# Link libraries
     target_link_libraries(${DAMGUI320_EXECUTABLE} ${QT_LIBRARIES} ${OPENGL_LIBRARIES}
-            Qt5::Widgets Qt5::OpenGL Qt5::PrintSupport )
+            Qt5::Widgets Qt5::OpenGL Qt5::PrintSupport)
+
+
+
 else (Qt5Widgets_FOUND) # If Qt5 not found
         message (FATAL_ERROR "Qt5 not available")
 endif (Qt5Widgets_FOUND)  # End of Block for Qt5Widgets

@@ -386,7 +386,6 @@ bool mespimizer::checkobabelinstall(){
                 if (fields2.at(0).contains("none"))
                     continue;
                 obcharges << fields2.at(0);
-//                qDebug() << "cargas " << i << " = " << obcharges.last();
             }
             if (result != 0){
                 QMessageBox::warning(this, tr("MESPIMIZER"),tr("No charge model available in Open Babel."
@@ -1257,52 +1256,6 @@ void mespimizer::replacechargescanvas(int indmol, QVector<double> *charges){
 void mespimizer::importchargestemplate(){
     int temp = gettemplate()-1;
     importcharges(temp);
-
-
-//    double sqrt2i = 0.707106781187;
-//    QFileDialog filedialog(this);
-//    filedialog.setWindowFlags(Qt::WindowStaysOnTopHint);
-//    QString fileName = filedialog.getOpenFileName(this,tr("Open file ..."),TXTmespimizerpath->text(),
-//                    tr("DAM charges files")+" (*.mltmod );;");
-//    if (fileName.length()==0) return;
-//    QFile file(fileName);
-//    if (!file.open(QFile::ReadOnly | QFile::Text)) {
-//        return;
-//    }
-//    QTextStream in(&file);
-//    QString line;
-//    Elements *elem = new Elements();
-//    QVector <int> znuc;
-//    int temp = gettemplate();
-//    znuc =  molecules->at(temp-1)->getcharges();
-//    int i = 0;
-//    while (!in.atEnd()){
-//        line = in.readLine();
-//#if QT_VERSION < 0x050E00
-//        QStringList fields = line.split(' ',QString::SkipEmptyParts);
-//#else
-//        QStringList fields = line.split(' ',Qt::SkipEmptyParts);
-//#endif
-//        if (i >= znuc.length()){
-//            delete elem;
-//            return;
-//        }
-//        else if (fields[0] != elem->getSymbol(znuc[i]) ){
-//            QMessageBox::warning(this, tr("MESPIMIZER"),QString(tr("File %1\n"
-//                "does not contain suitable charges for guest template.\n"
-//                "Symbol for atom #%2: in molecule: %3, in file %4"))
-//                .arg(fileName).arg(i).arg(fields[0]).arg(elem->getSymbol(znuc[i])));
-//            chargestemplate.clear();
-//            return;
-//        }
-//        else{
-//            chargestemplate << double(znuc[i])-fields[2].toDouble() * sqrt2i;
-//            i++;
-//        }
-
-//    }
-////    qDebug() << "chargestemplate = " << chargestemplate;
-//    delete elem;
 }
 
 

@@ -50,9 +50,13 @@
 #include "elements.h"
 #include "externals.h"
 
+#ifndef INTERVAL_INI
 #define INTERVAL_INI 100
-#define INTERVAL_SCALE 500
+#endif
 
+#ifndef INTERVAL_SCALE
+#define INTERVAL_SCALE 500
+#endif
 
 class chargescanvasDialog : public QDialog
 {

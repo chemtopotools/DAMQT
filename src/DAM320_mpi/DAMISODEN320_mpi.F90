@@ -67,6 +67,7 @@ END MODULE
     USE DAM320_D
     USE DAM320_CONST_D
     USE DAM320_DATA_D
+    USE DAMQT_UTILS
     USE DAMPOT320_D
     USE DAMISODEN320_D
     USE PARALELO
@@ -78,7 +79,7 @@ END MODULE
     integer(KINT) :: inamelist(1)
     real(KREAL) :: xmax, xmin, ymax, ymin, zmax, zmin
     real(KREAL) :: rnamelist(3)
-
+    character(len=256) :: base
     
     namelist / options / contourval, filename, gridname, geomthr, iswindows, langstrom, lbinary, lmaxrep, &
         longoutput, lvalence, umbrlargo
@@ -662,10 +663,10 @@ END MODULE
     else
         outrootname = gridname(1:len_trim(gridname)-4)
     endif
-    write(straux,"(i3)") myrank
+    write(straux,"(i2.2)") myrank
     iuni = 10
-    vertfile = trim(outrootname)//"_"//trim(adjustl(straux))//".vrttmp"
-    indfile = trim(outrootname)//"_"//trim(adjustl(straux))//".indtmp"
+    vertfile = trim(outrootname)//".vrttmp"//"_"//trim(adjustl(straux))
+    indfile  = trim(outrootname)//".indtmp"//"_"//trim(adjustl(straux))
 #if _WIN32
     open (unit=iuni, file=trim(vertfile), form='binary', carriagecontrol='NONE', iostat=ierr)
     if (ierr .ne. 0) then
@@ -783,9 +784,9 @@ END MODULE
         if (abort .eq. 0) then
             iuni = 10
             do i = 0, nprocs-1
-                write(straux,"(i3)") i
-                vertfile = trim(outrootname)//"_"//trim(adjustl(straux))//".vrttmp"
-                indfile = trim(outrootname)//"_"//trim(adjustl(straux))//".indtmp"
+                write(straux,"(i2.2)") i
+                vertfile = trim(outrootname)//".vrttmp"//"_"//trim(adjustl(straux))
+                indfile  = trim(outrootname)//".indtmp"//"_"//trim(adjustl(straux))
 #if _WIN32
                 open (unit=iuni+2*i, file=trim(vertfile), form='binary', carriagecontrol='NONE', iostat=ierr)
                 if (ierr .ne. 0) then
@@ -959,10 +960,17 @@ END MODULE
                 contourval, volume, volume*0.148184534296, surftot, surftot*0.280028297329d0
             write(6,"(/'Highest error in density, absolute = ', e10.3, ' relative = ', e10.3,/)") errabs, errabs / contourval
         endif
-        vertfile = trim(outrootname)//"_*.vrttmp"
-        indfile = trim(outrootname)//"_*.indtmp"
-        call system("rm -f "//trim(vertfile))
-        call system("rm -f "//trim(indfile))
+        base = trim(outrootname)//".vrttmp"
+write(6,"(/,'remove_files base = ', a)") base
+        call remove_files(base, ierr)
+
+        base = trim(outrootname)//".indtmp"
+write(6,"(/,'remove_files base = ', a)") base
+        call remove_files(base, ierr)
+!         vertfile = trim(outrootname)//"_*.vrttmp"
+!         indfile = trim(outrootname)//"_*.indtmp"
+!         call system("rm -f "//trim(vertfile))
+!         call system("rm -f "//trim(indfile))
     endif
     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
     if (myrank .eq. 0) tiempo = dtime(tarray)
@@ -1072,7 +1080,7 @@ END MODULE
     inquire(file=trim(projectname)//"_2016.damqt", size=nsize, iostat=ierr)
     if (ierr .ne. 0) call error(ierr,'Error when inquiring file '//trim(projectname)//"_2016.damqt")
     if (nsize .eq. -1) call error(1,'Size of file '//trim(projectname)//"_2016.damqt cannot be determined")
-    if (longoutput) write(6,"('Size of file ', a, ' = ', i12)") trim(projectname)//"_2016.damqt", nsize
+    if (longoutput .and. myrank .eq. 0) write(6,"('Size of file ', a, ' = ', i12)") trim(projectname)//"_2016.damqt", nsize
 #if _WIN32
     open (unit=10, file=trim(projectname)//"_2016.damqt", form='binary', action = 'read', carriagecontrol='NONE', iostat=ierr)
     if (ierr .ne. 0) then
@@ -1347,7 +1355,7 @@ END MODULE
 
     allocate(rlargo(ncen), lcorto(nintervaj,ncen), stat = ierr)
     if (ierr .ne. 0) call error(1,'Memory error when allocating rlargo and lcorto. Stop')
-    if (longoutput) write(6,"('Size of lcorto   = ', i15, ' bytes')") size(lcorto)
+    if (longoutput .and. myrank .eq. 0) write(6,"('Size of lcorto   = ', i15, ' bytes')") size(lcorto)
 
     allocate(umedpow(0:lmaxexp), stat = ierr)
     if (ierr .ne. 0) then
@@ -1406,12 +1414,14 @@ END MODULE
                 if (suml .gt. umbrlargo) rlargo(ia) = rinterv(interv)
             enddo
         enddo
-        if (longoutput) then
-            write(6,"('Long-range radius for center ',i8,' (',a2,') = ', e12.5, ' lcorto = ', 30(i3))") &
-                    ia, atmnms(nzn(ia)), rlargo(ia), lcorto(1:nintervaj,ia)
-        else
-            write(6,"('Long-range radius for center ',i8,' (',a2,') = ', e12.5)") &
-                    ia, atmnms(nzn(ia)), rlargo(ia)
+        if (myrank .eq. 0) then
+            if (longoutput) then
+                write(6,"('Long-range radius for center ',i8,' (',a2,') = ', e12.5, ' lcorto = ', 30(i3))") &
+                        ia, atmnms(nzn(ia)), rlargo(ia), lcorto(1:nintervaj,ia)
+            else
+                write(6,"('Long-range radius for center ',i8,' (',a2,') = ', e12.5)") &
+                        ia, atmnms(nzn(ia)), rlargo(ia)
+            endif
         endif
     enddo
     deallocate(umedpow)

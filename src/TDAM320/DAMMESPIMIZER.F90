@@ -254,8 +254,10 @@
                     allocate (molecules(nmols)%bawt(nb),molecules(nmols)%bs(nb),molecules(nmols)%bx(nb),&
                     molecules(nmols)%by(nb),molecules(nmols)%bz(nb),molecules(nmols)%bq(nb),molecules(nmols)%bvdw(nb),stat=ierr)
                     do i = 1,nb
-                        read(298,*,err=9299,end=299) d1,molecules(nmols)%bs(i),molecules(nmols)%bx(i),molecules(nmols)%by(i),&
-                        molecules(nmols)%bz(i),d2,d3,d4,molecules(nmols)%bq(i)
+                        read(298,*,err=9299,end=299) d1,d2,molecules(nmols)%bx(i),molecules(nmols)%by(i),&
+                        molecules(nmols)%bz(i),molecules(nmols)%bs(i),d3,d4,molecules(nmols)%bq(i)
+if (molecules(nmols)%bs(i)(2:2) .EQ. '.') molecules(nmols)%bs(i)(2:2) = ' '
+write(9876,*) molecules(nmols)%bs(i)
                         molecules(nmols)%bx(i)=molecules(nmols)%bx(i)*angau
                         molecules(nmols)%by(i)=molecules(nmols)%by(i)*angau
                         molecules(nmols)%bz(i)=molecules(nmols)%bz(i)*angau

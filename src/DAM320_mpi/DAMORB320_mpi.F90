@@ -543,7 +543,7 @@ subroutine leeorbgen(norbs)
     real(KREAL), allocatable :: arrayrank(:,:), arraydxrank(:,:), arraydyrank(:,:), arraydzrank(:,:)
     real(KREAL) :: b2a, x, y, z
     integer(KINT) :: iaux, ierr, iorb, iuni, ix, iy, iz, norbs, nx, nxyz, nxyzrank, ny, nz
-    character(2) faux
+    character(4) faux
     real(KREAL4) :: x1a, x2a, y1a, y2a, z1a, z2a
     integer(KINT) :: i, knt
     allocate(orbv(norbs), stat = ierr)
@@ -631,7 +631,7 @@ subroutine leeorbgen(norbs)
         iuni = 10
         do iorb = 1, norbs
             iuni = iuni + 1
-            write(faux,'(i2.2)') iorbs(iorb)
+            write(faux,'(i4.4)') iorbs(iorb)
             call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//".plt")
         enddo
 !	Opens files for orbitals gradients tabulation
@@ -643,17 +643,17 @@ subroutine leeorbgen(norbs)
             endif
             do iorb = 1, norbs
                 iuni = iuni + 1
-                write(faux,'(i2.2)') iorbs(iorb)
+                write(faux,'(i4.4)') iorbs(iorb)
                 call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//"-dx.pltd")
             enddo
             do iorb = 1, norbs
                 iuni = iuni + 1
-                write(faux,'(i2.2)') iorbs(iorb)
+                write(faux,'(i4.4)') iorbs(iorb)
                 call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//"-dy.pltd")
             enddo
             do iorb = 1, norbs
                 iuni = iuni + 1
-                write(faux,'(i2.2)') iorbs(iorb)
+                write(faux,'(i4.4)') iorbs(iorb)
                 call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//"-dz.pltd")
             enddo
         endif
@@ -774,7 +774,7 @@ subroutine leeorbgen(norbs)
     real(KREAL), allocatable :: arrayrank(:,:), arraydxrank(:,:), arraydyrank(:,:), arraydzrank(:,:)
     real(KREAL) :: b2a, x, y, z
     integer(KINT) :: iaux, ierr, iorb, iuni, ix, iy, iz, norbs, nx, nxyz, nxyzrank, ny, nz
-    character(2) faux
+    character(4) faux
     real(KREAL4) :: x1a, x2a, y1a, y2a, z1a, z2a
     integer(KINT) :: i, knt
     allocate(orbv(norbs), stat = ierr)
@@ -839,7 +839,7 @@ subroutine leeorbgen(norbs)
     endif
     call para_range(nz)
     idispv(0) = 0
-do i = 0, nprocs-2
+    do i = 0, nprocs-2
         ilenv(i) = (iendv(i)-istav(i)+1) * nx * ny
         idispv(i+1) = idispv(i) + ilenv(i)
     enddo
@@ -862,7 +862,7 @@ do i = 0, nprocs-2
         iuni = 10
         do iorb = 1, norbs
             iuni = iuni + 1
-            write(faux,'(i2.2)') iorbs(iorb)
+            write(faux,'(i4.4)') iorbs(iorb)
             call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//".plt")
         enddo
 !	Opens files for orbitals gradients tabulation
@@ -874,17 +874,17 @@ do i = 0, nprocs-2
             endif
             do iorb = 1, norbs
                 iuni = iuni + 1
-                write(faux,'(i2.2)') iorbs(iorb)
+                write(faux,'(i4.4)') iorbs(iorb)
                 call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//"-dx.pltd")
             enddo
             do iorb = 1, norbs
                 iuni = iuni + 1
-                write(faux,'(i2.2)') iorbs(iorb)
+                write(faux,'(i4.4)') iorbs(iorb)
                 call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//"-dy.pltd")
             enddo
             do iorb = 1, norbs
                 iuni = iuni + 1
-                write(faux,'(i2.2)') iorbs(iorb)
+                write(faux,'(i4.4)') iorbs(iorb)
                 call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//"-dz.pltd")
             enddo
         endif
@@ -1893,38 +1893,6 @@ write(6,*) 'en leedatSTOgen, lsgbsden = ', lsgbsden
         abort = 1
         return
     endif
-
-!	Allocates the array containing the density matrix
-
-    allocate(dmat(nbas,nbas), stat = ierr)
-    if (ierr .ne. 0) then
-        write(6,"('Error when allocating dmat in processor ',i3)") myrank
-        abort = 1
-        return
-    endif
-
-    if (myrank .eq. 0 .and. longoutput) write(6,"('Estimated highest size of dmat   = ', i15, ' bytes')") size(dmat)
-
-!	Reads the density matrix in lower triangle form:  read ((dmat(i,j), j = 1, i), i = 1, nbasis)
-    open(16,file=trim(projectname)//".den",form='formatted', iostat=ierr)
-    if (ierr .ne. 0) then
-        write(6,"('Cannot open file ', a, '.den in processor ',i3)") trim(projectname), myrank
-        abort = 1
-    endif
-    read(16,*, iostat = ios) nbasis, ((dmat(i,j),j=1,i),i=1,nbasis)
-    if ( ios .ne. 0 .or. nbas .ne. nbasis  .and. myrank .eq. 0) then
-        write(6,"('nbas = ', i5,' nbasis = ', i5)") nbas, nbasis
-        write(6,"('ERROR reading density matrix. Check whether the density matrix correspond to this basis set.')")
-        abort = 1
-        return
-    endif
-
-    close(16)
-    do i = 2, nbasis
-        do j = 1, i-1
-            dmat(j,i) = dmat(i,j)
-        enddo
-    enddo
 
 !	prints out the input data
     if (myrank .eq. 0) then

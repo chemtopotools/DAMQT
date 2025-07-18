@@ -145,8 +145,8 @@ if (.not.med.and..not.mesp) then
 	call titles    ! projectname (for input files) and filename (for output files) passed through module DAMINITIAL_T
 
 !      call gdam
-      
     if (med) call predamden
+
     if (mesp) call predampot
 
     call flush(iout)
@@ -174,6 +174,8 @@ if (.not.med.and..not.mesp) then
     write(iout,"(a)")"-------------------------------------------------------------------------------"
     write(iout,"(a)")"                                                                               "
       
+write(6,"('llama a topo, topograph = ', l)") topograph
+call flush(6)
       if (topograph) call topo
   
 !======Center of mass====================
@@ -265,6 +267,8 @@ if (.not.med.and..not.mesp) then
 !----------------------------------------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------------------
       
+write(6,"('entra en topo')")
+call flush(6)
       if (med) write(iout,"(a,I3)") "Euler Characteristic = -1"
               
       open ( unit = 31, file = trim(filename)//".ts",access="append", status="replace") 

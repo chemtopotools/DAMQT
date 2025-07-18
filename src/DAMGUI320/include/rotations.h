@@ -42,8 +42,13 @@
 #include "recorder.h"
 #include "widgetsubclasses.h"
 
-#define INTERVAL_INI 100
-#define INTERVAL_SCALE 200
+#ifndef INTERVAL_INI
+#define INTERVAL_INI  100
+#endif
+
+#ifndef INTERVAL_SCALE
+#define INTERVAL_SCALE  200
+#endif
 
 class rotations : public QWidget
 {

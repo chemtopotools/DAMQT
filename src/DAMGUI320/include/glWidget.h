@@ -68,19 +68,41 @@
 #include "elements.h"
 #include "widgetsubclasses.h"
 
-#define ANGSTROM_TO_BOHR 1.889725989
-//#define BOHR_TO_A        QVector <double> charges;NGSTROM 0.529177249
-//#define INIT_BOND_THRESHOLD 1.2
-#define MAX_FRAMES 1000
-#define MAX_INTERVAL 220.
-#define MIN_INTERVAL 20.
-#define NINTERPOL 10
-#define INTERVAL_INI 100
-#define INTERVAL_SCALE 200
-//#define PERSPECTIVE_ANGLE 45.	// Angle for Perspective (in degrees)
-//#define ZNEAR 0.001             // Znear for Perspective
-//#define ZFAR 200.				// Zfar  for Perspective
-#define Z_TRANS_INI -20.
+#ifndef ANGSTROM_TO_BOHR
+#define ANGSTROM_TO_BOHR 1.88971616463
+#endif
+
+#ifndef INIT_BOND_THRESHOLD
+#define INIT_BOND_THRESHOLD  1.2
+#endif
+
+#ifndef INTERVAL_INI
+#define INTERVAL_INI  100
+#endif
+
+#ifndef INTERVAL_SCALE
+#define INTERVAL_SCALE  200
+#endif
+
+#ifndef MAX_FRAMES
+#define MAX_FRAMES  1000
+#endif
+
+#ifndef MAX_INTERVAL
+#define MAX_INTERVAL  220.
+#endif
+
+#ifndef MIN_INTERVAL
+#define MIN_INTERVAL  20.
+#endif
+
+#ifndef NINTERPOL
+#define NINTERPOL  10
+#endif
+
+#ifndef Z_TRANS_INI
+#define Z_TRANS_INI  -20.
+#endif
 
 #if __cplusplus <= 199711L
     #define nullpointer NULL

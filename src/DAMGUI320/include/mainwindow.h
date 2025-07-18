@@ -56,6 +56,7 @@
 #include "IniFile.h"
 #include "math.h"
 #include "viewer2D.h"
+#include "viewerdialog.h"
 #include "Sheet.h"
 #include "glWidget.h"
 using namespace std;
@@ -66,6 +67,8 @@ using namespace std;
 #define MAX_ARCHIVOS_RECIENTES  20
 #define MAX_NUM_PROCESSORS 64
 #define NFORTRANPROCS 13
+
+bool checkMpiCommand(QString& mpiCommand);
 
 class QAction;
 class QActionGroup;
@@ -100,21 +103,6 @@ class QDoubleValidator;
 //  C++11 compliant compiler
     #define nullpointer nullptr
 #endif
-
-class ViewerDialog : public QDialog
-{
-    Q_OBJECT
-public:
-    explicit ViewerDialog();
-    ~ViewerDialog();
-
-protected:
-    virtual void reject();
-
-signals:
-    void closed();
-
-};
 
 class MainWindow : public QMainWindow
 {
@@ -235,6 +223,7 @@ private slots:      // Alphabetically sorted (including type in sort)
     void execPsi4auxiliary();
     void execsgbs2sxyz(QString qstring);
     void execSxyzDen();
+    bool executeprogram(bool runmipi, QString outputprefix, QString rootname, QString stdinput, QString stdoutput, QString subdir, int nprocs, int executeindex);
 
     void Help();
 

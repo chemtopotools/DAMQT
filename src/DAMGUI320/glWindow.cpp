@@ -708,6 +708,7 @@ void glWindow::initShaders()
         msgBox.exec();
         close();
     }
+
 }
 
 void glWindow::initTextures()
@@ -984,7 +985,7 @@ void glWindow::paintGLbuff(QSize size)
         glShadeModel( GL_SMOOTH );
 
         // Calculate aspect ratio
-        qreal aspect = qreal(size.width()) / qreal(size.height() ? size.height() : 1);
+        qreal aspect = qreal(this->size().width()) / qreal(this->size().height() ? this->size().height() : 1);
         // Reset projection
         projection.setToIdentity();
 
@@ -1149,6 +1150,12 @@ void glWindow::reloadbuffers(){
 //
 
 void glWindow::drawlabels(QPainter *painter, QRect viewport){
+//    QOpenGLFunctions_4_1_Compatibility* gl = context()->versionFunctions<QOpenGLFunctions_4_1_Compatibility>();
+//    if (!gl) return; // seguridad
+//    gl->initializeOpenGLFunctions();
+
+
+
     painter->setBackgroundMode(Qt::TransparentMode);
     for (int i = 0 ; i < molecules->count() ; i++){
         if (molecules->at(i)->isvisible()){
@@ -1188,7 +1195,9 @@ void glWindow::drawatomsvalues(QPainter *painter, QRect viewport, int i){
     painter->setPen(molecules->at(i)->getfontcolor());
     painter->setFont(molecules->at(i)->getfont());
     for (int j = 0; j < xyz.length() ; j++){
-        if ((molecules->at(i)->getonlyatomactive() && !(molecules->at(i)->isatomactive(j))) ||
+//        qDebug() << "molecule " << i << " atom " << j << " isvisible " << molecules->at(i)->isatomvisible(j);
+        if ((!molecules->at(i)->isatomvisible(j)) ||
+              (molecules->at(i)->getonlyatomactive() && !(molecules->at(i)->isatomactive(j))) ||
               (molecules->at(i)->gethidehydrogens() && (molecules->at(i)->getznuc(j) == 1))
                 ) continue;
         QVector4D vaux = mvp_list->at(i) * QVector4D(xyz[j], 1.0f);
@@ -1946,7 +1955,7 @@ centerData glWindow::searchatom(int x,int y){
     QRect viewport = QRect(vport[0],vport[1],vport[2],vport[3]);
     centerData center;
     for (int i = 0 ; i < molecules->count() ; i++){
-        if (!(molecules->at(i)->isvisible())) continue;
+        if (!(molecules->at(i)->isvisible()) || !(molecules->at(i)->isactive())) continue;
         QVector <QVector3D> xyz = molecules->at(i)->getxyz();
         int r2 = molecules->at(i)->getfont().pointSizeF() * 0.5;
         r2 *= r2;
@@ -2789,6 +2798,7 @@ void glWindow::resetmeasures(){
     dihedrals = false;
     distances = false;
     angstrom = false;
+    emit resetbohr();
     update();
 }
 
@@ -3281,13 +3291,13 @@ void glWindow::setznear(double a){
 void glWindow::restoreGLState()
 {
     mvp_list->clear();
-    mvp_list = mvp_list_backup;
+    *mvp_list = *mvp_list_backup;
 }
 
 void glWindow::saveGLState()
 {
     mvp_list_backup->clear();
-    mvp_list_backup = mvp_list;
+    *mvp_list_backup = *mvp_list;
 }
 
 
@@ -3318,3 +3328,5 @@ void glWindow::printContextInformation()
   // qPrintable() will print our QString w/o quotes around it.
   qDebug() << qPrintable(glType) << qPrintable(glVersion) << "(" << qPrintable(glProfile) << ")";
 }
+
+

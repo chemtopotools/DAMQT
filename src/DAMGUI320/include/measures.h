@@ -50,8 +50,13 @@
 #include "elements.h"
 #include "widgetsubclasses.h"
 
-#define ANGSTROM_TO_BOHR 1.889725989
+#ifndef ANGSTROM_TO_BOHR
+#define ANGSTROM_TO_BOHR 1.88971616463
+#endif
+
+#ifndef BOHR_TO_ANGSTROM
 #define BOHR_TO_ANGSTROM 0.529177248882
+#endif
 
 #if __cplusplus <= 199711L
     #define nullpointer NULL
@@ -190,6 +195,7 @@ signals:
 public slots:
     void close_measuresInfoWindow();
     void distance_remove(QVector<centerData>*, int);
+    void resetRBTbohr();
     void resetlastselectangles();
     void resetlastselectdihedrals();
     void resetlastselectdist();
