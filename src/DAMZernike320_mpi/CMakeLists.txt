@@ -4,7 +4,8 @@ project(DAMZernike320_mpi)
 
 enable_language (C Fortran)
 
-find_package(MPI REQUIRED)   # This is redundant (it has been previously checked), but convenient to remember that MPI is necessary
+find_package(MPI COMPONENTS Fortran REQUIRED)
+
 add_definitions(${MPI_Fortran_COMPILE_FLAGS})
 include_directories(${MPI_Fortran_INCLUDE_PATH})
 link_directories(${MPI_Fortran_LIBRARIES})
@@ -47,8 +48,13 @@ add_library(DAMZernikeGLOBAL_mpi_mods DAMZernike320_mpi_GLOBAL.F90 Zernike-Jacob
 # Create binaries
 # ===============
 foreach (p ${DAMZernike320_mpi_PROGRAMS})
-   add_executable(${p}.exe "${p}.F90")
-   list (APPEND DAMZernike320_mpi_EXECUTABLES ${p}.exe )
+    if (UNIX AND NOT CYGWIN)
+        add_executable(${p}.exe "${p}.F90")
+        list (APPEND DAMZernike320_mpi_EXECUTABLES ${p}.exe )
+    else (UNIX AND NOT CYGWIN)  # To prevent double .exe extension
+        add_executable(${p} "${p}.F90")
+        list (APPEND DAMZernike320_mpi_EXECUTABLES ${p} )
+    endif (UNIX AND NOT CYGWIN)
 endforeach (p)
 
 # Links binaries to modules

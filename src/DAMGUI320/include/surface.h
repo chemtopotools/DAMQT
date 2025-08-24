@@ -106,6 +106,7 @@ public:
     int  getvalueprecision();
     int  getvshift();
 
+    float getcontourvalue();
     float getfabstop();
     float getopacity();
     float gettopcolor();
@@ -134,6 +135,7 @@ public:
 
     void surfacecolor_changed(QColor);
     void resetsurface();
+    void setcontourvalue(float);
     void setextremactive(int, int, bool);
     void setextremhidden(int, int, bool);
     void setinitialposition(QPoint);
@@ -218,6 +220,7 @@ private:
 
     uint maxindex[2];
 
+    float contourvalue;                   // Function value for sorting surface
     float fmax;
     float fmin;
     float fabstop;

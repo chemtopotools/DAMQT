@@ -202,6 +202,7 @@ Viewer2D::Viewer2D(QString *name, QWidget *parent): QWidget(parent) {
     mainWin->addDockWidget(Qt::RightDockWidgetArea,gdock);
     mainWin->resize(size);
     mainWin->move(position);
+    mainWin->setWindowIcon(QIcon(":/images/icon.png"));
     connect(mainWin,SIGNAL(hideplotter()),this,SIGNAL(hideplotter()));
     mainWin->show();
 }

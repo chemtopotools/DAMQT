@@ -42,9 +42,18 @@
 
 #include "widgetsubclasses.h"
 
-#define ANGSTROM_TO_BOHR 1.889725989
-#define BOHR_TO_ANGSTROM 0.529177249
-#define Z_TRANS_INI -20.
+
+#ifndef ANGSTROM_TO_BOHR
+#define ANGSTROM_TO_BOHR 1.88971616463
+#endif
+
+#ifndef BOHR_TO_ANGSTROM
+#define BOHR_TO_ANGSTROM 0.529177248882
+#endif
+
+#ifndef Z_TRANS_INI
+#define Z_TRANS_INI  -20.
+#endif
 
 class translations : public QWidget
 {

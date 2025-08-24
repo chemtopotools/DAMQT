@@ -27,6 +27,7 @@
 //
 #include <QtCore/qmath.h>
 #include <QDialog>
+#include <QDir>
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QCoreApplication>
@@ -567,28 +568,64 @@ void isosurface::BTNexec_clicked(){
     QString strprocess;
     if (isdensity){
         if (mpi && CHKmpi->isChecked()){
-            stdoutput = path+"/"+basename+"-DAMISODEN320_mpi.out";
             processname = "DAMISODEN320_mpi.exe";
             QString execName = get_execName(processname, QString("DAM320_mpi"));
-            strprocess = QString("%1 %2 %3 %4 %5").arg(mpicommand).arg("-np")
-                        .arg(SPBmpi->value()).arg(mpiflags).arg(execName);
+            if (execName.isEmpty())
+                return;
+            // strprocess = QString("%1 %2 %3 %4 %5").arg(mpicommand).arg("-np")
+            //             .arg(SPBmpi->value()).arg(mpiflags).arg(execName);
+            // stdoutput = path+"/"+basename+"-DAMISODEN320_mpi.out";
 //            qDebug() << "strprocess = " << strprocess;
+            if (iswindows) {
+                // Windows + Cygwin – wrapper script in the same directory as the GUI executable
+                QString wrapperScript = QDir(QCoreApplication::applicationDirPath()).filePath("run_mpi.sh");
+                strprocess = QString("bash \"%1\" %2 \"%3\" \"%4\"")
+                .arg(wrapperScript)
+                .arg(SPBmpi->value())
+                .arg(execName)
+                .arg(stdinput);
+            } else {
+                // Linux/macOS – use native mpirun
+                strprocess = QString("%1 -np %2 %3 %4")
+                .arg(mpicommand)
+                .arg(SPBmpi->value())
+                .arg(mpiflags)
+                .arg(execName);
+            }
+            stdoutput = path+"/"+basename+"-DAMISODEN320_mpi.out";
         }
         else{
-            stdoutput = path+"/"+basename+"-DAMISODEN320.out";
             processname = "DAMISODEN320.exe";
             QString execName = get_execName(processname, QString("DAM320"));
             strprocess = execName;
+            stdoutput = path+"/"+basename+"-DAMISODEN320.out";
 //            qDebug() << "strprocess = " << strprocess;
         }
     }
     else{
         if (mpi && CHKmpi->isChecked()){
-            stdoutput = path+"/"+basename+"-DAMISOPOT320_mpi.out";
             processname = "DAMISOPOT320_mpi.exe";
             QString execName = get_execName(processname, QString("DAM320_mpi"));
-            strprocess = QString("%1 %2 %3 %4 %5").arg(mpicommand).arg("-np")
-                        .arg(SPBmpi->value()).arg(mpiflags).arg(execName);
+            // strprocess = QString("%1 %2 %3 %4 %5").arg(mpicommand).arg("-np")
+            //             .arg(SPBmpi->value()).arg(mpiflags).arg(execName);
+            // stdoutput = path+"/"+basename+"-DAMISOPOT320_mpi.out";
+            if (iswindows) {
+                // Windows + Cygwin – wrapper script in the same directory as the GUI executable
+                QString wrapperScript = QDir(QCoreApplication::applicationDirPath()).filePath("run_mpi.sh");
+                strprocess = QString("bash \"%1\" %2 \"%3\" \"%4\"")
+                .arg(wrapperScript)
+                .arg(SPBmpi->value())
+                .arg(execName)
+                .arg(stdinput);
+            } else {
+                // Linux/macOS – use native mpirun
+                strprocess = QString("%1 -np %2 %3 %4")
+                .arg(mpicommand)
+                .arg(SPBmpi->value())
+                .arg(mpiflags)
+                .arg(execName);
+            }
+            stdoutput = path+"/"+basename+"-DAMISOPOT320_mpi.out";
         }
         else{
             stdoutput = path+"/"+basename+"-DAMISOPOT320.out";
@@ -923,7 +960,6 @@ void isosurface::generategridbounds(float *a){
 }
 
 QString isosurface::get_basename(){
-//    QString base = QFileInfo(name).completeBaseName();
     QString base = name;
     int i = base.indexOf("-d_surf");
     if (i < 0){

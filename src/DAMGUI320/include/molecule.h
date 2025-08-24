@@ -56,20 +56,66 @@
 #include "surface.h"
 #include "widgetsubclasses.h"
 
-#define pi           3.14159265358979323846  /* pi */
-#define ANGSTROM_TO_BOHR 1.889725989
-#define BOHR_TO_ANGSTROM 0.529177249
-#define INIT_BOND_THRESHOLD 1.2
-#define MAX_CPS 4		 // Number of types of critical points
-#define MAX_FORCES 5		 // Number of types of force types
-#define MAX_INTERVAL 220.
-#define MIN_INTERVAL 20.
-#define INTERVAL_INI 100
-#define INTERVAL_SCALE 200
-#define SCALE 0.01
-#define MOLSCALEHEIGHT 20.
-#define MOLSCALEARROWSHEIGHT 2.
-#define Z_TRANS_INI -20.
+
+#include <string>
+#include <regex>
+#include <cstdlib> // para strtod
+
+#ifndef pi
+#define pi 3.14159265358979323846  // pi
+#endif
+
+#ifndef ANGSTROM_TO_BOHR
+#define ANGSTROM_TO_BOHR 1.88971616463
+#endif
+
+#ifndef BOHR_TO_ANGSTROM
+#define BOHR_TO_ANGSTROM 0.529177248882
+#endif
+
+#ifndef INIT_BOND_THRESHOLD
+#define INIT_BOND_THRESHOLD  1.2
+#endif
+
+#ifndef INTERVAL_INI
+#define INTERVAL_INI  100
+#endif
+
+#ifndef INTERVAL_SCALE
+#define INTERVAL_SCALE  200
+#endif
+
+#ifndef MAX_CPS
+#define MAX_CPS  4   // Number of types of critical points
+#endif
+
+#ifndef MAX_FORCES
+#define MAX_FORCES  5		 // Number of types of force types
+#endif
+
+#ifndef MAX_INTERVAL
+#define MAX_INTERVAL  220.
+#endif
+
+#ifndef MIN_INTERVAL
+#define MIN_INTERVAL  20.
+#endif
+
+#ifndef MOLSCALEHEIGHT
+#define MOLSCALEHEIGHT  20.
+#endif
+
+#ifndef MOLSCALEARROWSHEIGHT
+#define MOLSCALEARROWSHEIGHT  2.
+#endif
+
+#ifndef SCALE
+#define SCALE  0.01
+#endif
+
+#ifndef Z_TRANS_INI
+#define Z_TRANS_INI  -20.
+#endif
 
 #if __cplusplus <= 199711L
     #define nullpointer NULL
@@ -112,6 +158,7 @@ public:
     bool getonlyatomactive();
     bool isactive();
     bool isatomactive(int);
+    bool isatomvisible(int);
     bool isaxeslabelsvisible();
     bool isaxesvisible();
     bool isvisible();
@@ -121,6 +168,8 @@ public:
     bool retrievesurf(QString);
 
     double getz_trans_ini();
+
+    qreal getballradius();
 
     float getstepwheel();
 
@@ -148,6 +197,7 @@ public:
 
     QList<grid*> *grids;
     QList<surface*> *surfaces;
+    QList<surface*> sortedSurfaces;
 
     QPoint getparentposition();
 
@@ -176,6 +226,7 @@ public:
     void createeditMoleculeDialog();
     void darken();
     void initatomactive(bool);
+    void initatomvisible(bool);
     void lighten();
     void loadallindices(QVector<GLuint>);
     void loadallindicesoffset(QVector<GLuint>);
@@ -292,6 +343,8 @@ public slots:
     void reset_translation();
     void resizeQDLeditMolecule();
     void rotation_changed();
+    void setatomhidden(int);
+    void setatomvisible(int);
     void setballradius(qreal);
     void setcylradius(qreal);
     void setdisthressq(qreal);
@@ -354,6 +407,7 @@ private slots:
 
 private:
     int getscalevalueInt(float, int, int, float, float);
+    double extractContourFromSghName(const std::string& filename);
 
     QVector <GLuint> coneindices;
     QVector <GLuint> cylinderindices;
@@ -396,6 +450,11 @@ private:
     int axesthickness;
     int coordprecision;
     int labelsvshift;
+
+    struct Sphere {
+        QVector3D position;
+        float radius;
+    };
 
     ColorButton *BTNcpcolor[MAX_CPS];
     ColorButton *BTNcpcolorfont;
@@ -561,8 +620,10 @@ private:
     QVector4D darkenshift;
 
     QVector<bool> atomactive;   // Atom active for visualization
+    QVector<bool> atomvisible;   // Atom not hidden in the scene
     QVector<int> znuc;          // Atomic number of centers
     QVector<QVector3D > xyz;    // Cartesian coordinates
+    QVector<Sphere> atomspheres;
 
     qreal ballradius;                       // Radius of atom spheres
     qreal cylradius;                        // Radius of bond cylinders

@@ -29,6 +29,7 @@
     USE DAM320_D
     USE DAM320_CONST_D
     USE DAM320_DATA_D
+    USE DAMQT_UTILS
     USE DAMDENGRAD320_D
     USE icosahedron
     USE PARALELO
@@ -50,6 +51,8 @@
     character(256) :: filelines
     logical :: lnucleo, lexist
     character*4 :: strbux
+    character(len=256) :: base, output
+
     namelist / options / basintol, dlt0, filename, filelines, icntlines, ioplines3D, iswindows, lextralines &
             , lmaxrep, longoutput, lplot2d, nlines, nlinpernuc, numpnt, planeA, planeB, planeC &
             , thresh, umbrlargo, usalto, uvratio, rlines &
@@ -393,8 +396,12 @@
     CALL MPI_REDUCE(nlincomp,nlincomptot,1,MPI_INTEGER,MPI_SUM,0,MPI_COMM_WORLD,ierr)
     
     if (myrank .eq. 0) then
-        call system("cat "//trim(filename)//".dengr_?? > "//trim(filename)//".dengr")
-        call system("rm -f "//trim(filename)//".dengr_??")
+        base = trim(filename)//".dengr"
+        output = base
+        call gather_text_files(base, output, ierr)
+        if (ierr .ne. 0) then
+            call error(ierr,'Error gathering files '//trim(base))
+        endif
         write(6,"(/7x,'STATISTICS',/)")
         write(6,"('Number of computed points = ', i9)") npuntot
         write(6,"('Total number of attempted lines = ', i9)") nlineastot

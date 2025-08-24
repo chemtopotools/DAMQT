@@ -1,3 +1,30 @@
+//  Copyright 2008-2021, Jaime Fernandez Rico, Rafael Lopez, Ignacio Ema,
+//  Guillermo Ramirez, David Zorrilla, Anmol Kumar, Sachin D. Yeole, Shridhar R. Gadre
+//
+//  This file is part of DAMQT.
+//
+//  DAMQT is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  DAMQT is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with DAMQT.  If not, see <http://www.gnu.org/licenses/>.
+//
+//------------------------------------------------------------------------
+//	Implementation of class surface
+//
+//	File:   surface.cpp
+//
+//	Author: Rafael Lopez    (rafael.lopez@uam.es)
+//
+//	Last version: April 2025
+//
 #include <QtCore/qmath.h>
 #include <QDialog>
 #include <QCheckBox>
@@ -46,6 +73,7 @@ surface::surface(QWidget *parent) : QWidget(parent)
     solidsurf = true;
 
     ballradius = 10;
+    contourvalue = 0.;
     coordprecision = 2;
     fabstop = 1.0;
     name = "";
@@ -156,7 +184,6 @@ void surface::setballradius(int i){
 }
 
 void surface::extremaselectall(){
-//    qDebug() << "entra en extremaselectall";
     for (int i=0 ; i<2 ; i++){
         for (int j = 0 ; j < extremactive[i].length() ; j++){
             setextremactive(i, j, true);
@@ -166,7 +193,6 @@ void surface::extremaselectall(){
 }
 
 void surface::extremaselectnone(){
-//    qDebug() << "entra en extremaselectnone";
     for (int i=0 ; i<2 ; i++){
         for (int j = 0 ; j < extremactive[i].length() ; j++){
             setextremactive(i, j, false);
@@ -1097,11 +1123,9 @@ bool surface::readsghnew(QString filename){
     double dvaux[7];
     QFile inputfile(filename);
     if (!inputfile.open(QIODevice::ReadOnly)){
-//        qDebug() << "No puede abrir " << filename;
         return false;
     }
     QDataStream data (&inputfile);
-//    qDebug() << "sizeof(int) = " << sizeof(int);
 
 //      Read file with function
 //      iaux[0] (== 0 double, != 0 float); iaux[2] = not used; iaux[3-5] = nx, ny, nz
@@ -1109,7 +1133,6 @@ bool surface::readsghnew(QString filename){
         QByteArray bar;
         bar = inputfile.read(sizeof(int));
         memcpy(&iaux[i], bar.constData(), sizeof(int));
-//        qDebug() << "iaux[" << i << "] = " << iaux[i];
     }
 
     if (iaux[0] == 0)
@@ -1125,7 +1148,6 @@ bool surface::readsghnew(QString filename){
             QByteArray bar;
             bar = inputfile.read(sizeof(double));
             memcpy(&dvaux[i], bar.constData(), sizeof(double));
-//            qDebug() << "dvaux[" << i << "] = " << dvaux[i];
         }
         for (int i = 0 ; i < 6 ; i++){
             vaux[i] = dvaux[i];
@@ -1137,7 +1159,6 @@ bool surface::readsghnew(QString filename){
             QByteArray bar;
             bar = inputfile.read(sizeof(float));
             memcpy(&vaux[i], bar.constData(), sizeof(float));
-//            qDebug() << "vaux[" << i << "] = " << vaux[i];
         }
 
         for (int i = 0 ; i < 6 ; i++){
@@ -1150,7 +1171,6 @@ bool surface::readsghnew(QString filename){
         QByteArray bar;
         bar = inputfile.read(sizeof(int));
         memcpy(&iaux[i], bar.constData(), sizeof(int));
-//        qDebug() << "iaux[" << i << "] = " << iaux[i];
     }
 
     nvertices = iaux[0];
@@ -1238,9 +1258,6 @@ bool surface::readsghnew(QString filename){
     topcolor = 0.9*fabstop;
     localextrema[0].clear();
 
-//    qDebug() << "allindices.count() = " << allindices.count();
-//    qDebug() << "allvertices.count() = " << allvertices.count();
-
     QByteArray bar;
     bar = inputfile.read(sizeof(int));
     if (!inputfile.atEnd()){
@@ -1266,8 +1283,6 @@ bool surface::readsghnew(QString filename){
             extremhidden[0].append(false);
         }
     }
-
-//    qDebug() << "localextrema[0].count() = " << localextrema[0].count();
 
     localextrema[1].clear();
 
@@ -1295,7 +1310,7 @@ bool surface::readsghnew(QString filename){
             extremhidden[1].append(false);
         }
     }
-//qDebug() << "localextrema[1].count() = " << localextrema[1].count();
+
     createballs();
     return true;
 }
@@ -1310,7 +1325,6 @@ bool surface::readsrfnew(QString filename){
 
     QFile inputfile(filename);
     if (!inputfile.open(QIODevice::ReadOnly)){
-//        qDebug() << "No puede abrir " << filename;
         return false;
     }
     QDataStream data (&inputfile);
@@ -1487,6 +1501,10 @@ bool surface::readsrfnew(QString filename){
     }
     createballs();
     return true;
+}
+
+float surface::getcontourvalue(){
+    return contourvalue;
 }
 
 QColor surface::getextremacolor(int i){
@@ -1711,6 +1729,10 @@ void surface::selectminimacolor(){
         emit minimaColor(&extremacolor[1]);
         emit updatedisplay();
     }
+}
+
+void surface::setcontourvalue(float a){
+    contourvalue = a;
 }
 
 void surface::setname(QString a){

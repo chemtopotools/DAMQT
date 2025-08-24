@@ -13,19 +13,19 @@ set (CPP_INTERFACES_EXECUTABLES "" )
 
 # Create binaries
 # ===============
-if (UNIX)
+if (UNIX AND NOT CYGWIN)
     foreach (p ${CPP_INTERFACES})
-            add_executable(${p}.exe "${p}.cpp")
-            list (APPEND CPP_INTERFACES_EXECUTABLES ${p}.exe )
-            message("Adds ${p}.exe" )
+        add_executable(${p}.exe "${p}.cpp")
+        list (APPEND CPP_INTERFACES_EXECUTABLES ${p}.exe )
+        message("Adds ${p}.exe" )
     endforeach (p)
-else (UNIX)  # To prevent double .exe extension
+else (UNIX AND NOT CYGWIN)  # To prevent double .exe extension
     foreach (p ${CPP_INTERFACES})
-            add_executable(${p} "${p}.cpp")
-            list (APPEND CPP_INTERFACES_EXECUTABLES ${p} )
-            message("Adds ${p}" )
+        add_executable(${p} "${p}.cpp")
+        list (APPEND CPP_INTERFACES_EXECUTABLES ${p} )
+        message("Adds ${p}" )
     endforeach (p)
-endif (UNIX)
+endif (UNIX AND NOT CYGWIN)
 
 
 # install executables

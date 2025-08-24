@@ -268,6 +268,206 @@ END MODULE
 !                 END OF MODULE DAM320_LEGENDRE_D
 !...............................................................................................
 !===============================================================================================
+!                 MODULE DAMQT_UTILS
+!===============================================================================================
+MODULE DAMQT_UTILS
+    IMPLICIT NONE
+    contains
+
+      subroutine gather_text_files(base, outfile, istatus)
+      implicit none
+      character(len=*), intent(in) :: base       ! Parte fija del nombre (ej: "C2H4_2016.dmqtv")
+      character(len=*), intent(in) :: outfile     ! Nombre del archivo de salida sin extensión
+      integer :: ierr
+      integer, intent(out) :: istatus
+
+      integer :: i, lunin, lunout
+      character(len=256) :: filename
+      character(len=256) :: line
+      logical :: exists
+
+      ierr = 0
+      lunout = 20
+      open(unit=lunout, file=trim(outfile), status='replace', action='write', iostat=istatus)
+      if (istatus /= 0) then
+          write(6,"('Error opening output file ', a)") trim(outfile)
+          return
+      endif
+
+      do i = 0, 99
+          write(filename, '(A,"_",I2.2)') trim(base), i
+          inquire(file=trim(filename), exist=exists)
+          if (.not. exists) exit
+
+          lunin = 21
+          open(unit=lunin, file=trim(filename), status='old', action='read', iostat=istatus)
+          if (istatus /= 0) then
+              write(6,"('Error opening input file ', a)") trim(filename)
+              return
+          endif
+          do
+              read(lunin, '(A)', iostat=ierr) line
+              if (ierr /= 0) exit
+              write(lunout, '(A)') trim(line)
+          end do
+          close(lunin)
+
+          ! Borrar archivo fuente
+          open(unit=30, file=trim(filename), status='old', iostat=istatus)
+          if (istatus /= 0) then
+              write(6,"('Error opening input file ', a , ' to delete')") trim(filename)
+              return
+          endif
+          close(30, status='delete')
+      end do
+
+      close(lunout)
+      end subroutine
+
+      subroutine gather_binary_files(base, outfile, istatus)
+      implicit none
+      character(len=*), intent(in) :: base       ! Parte fija del nombre (ej: "C2H4_2016.dmqtv")
+      character(len=*), intent(in) :: outfile     ! Nombre del archivo de salida sin extensión
+      integer :: ierr, iunit
+      integer, intent(out) :: istatus
+
+      integer :: filesize, i, j, lunin, lunout, nb_full_blocks, remaining
+      integer, parameter :: buffer_size = 8192
+      character(len=1), dimension(buffer_size) :: buffer
+
+      character(len=256) :: filename
+      logical :: exists, isopen
+
+      ierr = 0
+      lunout = 20
+
+#if _WIN32
+      open (unit=lunout, file=trim(outfile), status='replace', form='binary', &
+            action = 'write', carriagecontrol='NONE', iostat=istatus)
+#elif __INTEL_COMPILER
+      open (unit=lunout, file=trim(outfile), status='replace', form='binary', &
+            action = 'write', carriagecontrol='NONE', iostat=istatus)
+#else
+      open (unit=lunout, file=trim(outfile), status='replace', form='unformatted', &
+            action = 'write', access='stream', iostat=istatus)
+#endif
+      if (istatus /= 0) then
+          write(6,"('Error opening output file ', a)") trim(outfile)
+          return
+      endif
+
+      do i = 0, 99
+          write(filename, '(A,"_",I2.2)') trim(base), i
+          inquire(file=trim(filename), exist=exists)
+          if (.not. exists) exit
+
+          lunin = 21
+#if _WIN32
+          open (unit=lunin, file=trim(filename), status='old', form='binary', &
+                action = 'read', carriagecontrol='NONE', iostat=istatus)
+#elif __INTEL_COMPILER
+          open (unit=lunin, file=trim(filename), status='old', form='binary', &
+                action = 'read', carriagecontrol='NONE', iostat=istatus)
+#else
+          open (unit=lunin, file=trim(filename), status='old', form='unformatted', &
+                action = 'read', access='stream', iostat=istatus)
+#endif
+          if (istatus /= 0) then
+              write(6,"('Error opening input file ', a)") trim(filename)
+              return
+          endif
+          inquire(unit=lunin, size=filesize)
+          nb_full_blocks = filesize / buffer_size
+          remaining = mod(filesize, buffer_size)
+          do j = 1, nb_full_blocks
+              read(lunin, pos=(j-1)*buffer_size+1, iostat=ierr) buffer
+              if (ierr /= 0) exit
+              write(lunout) buffer
+          end do
+          if (remaining > 0) then
+              read(lunin, pos=nb_full_blocks*buffer_size + 1, iostat=ierr) buffer(1:remaining)
+              if (ierr == 0) write(lunout) buffer(1:remaining)
+          end if
+
+          close(lunin)
+
+          ! delete auxiliary files
+          inquire(file=trim(filename), opened=isopen, number=iunit)
+          if (.not. isopen) then
+             iunit = 30
+             open(unit=iunit, file=trim(filename), status='old', iostat=istatus)
+             if (istatus /= 0) then
+                write(6,"('Error opening input file ', a , ' to delete')") trim(filename)
+                return
+             endif
+          endif
+          close(iunit, status='delete')
+      end do
+
+      close(lunout)
+      end subroutine
+
+      subroutine remove_files(base, istatus)
+      implicit none
+      character(len=*), intent(in) :: base       ! Parte fija del nombre (ej: "C2H4_2016.den")
+      integer :: ierr, iunit
+      integer, intent(out) :: istatus
+      integer :: i, lunin
+      character(len=256) :: filename
+      logical :: exists, isopen
+
+      do i = 0, 99
+          write(filename, '(A,"_",I2.2)') trim(base), i
+          inquire(file=trim(filename), exist=exists)
+          if (.not. exists) then
+!               write(6,"('Error trying to delete file ', a , '. File does not exist')") trim(filename)
+              exit
+          endif
+          ! Delete auxiliary file
+          istatus = 0
+          inquire(file=trim(filename), opened=isopen, number=iunit)
+          if (.not. isopen) then
+                iunit = 30
+                open(unit=iunit, file=trim(filename), status='old', iostat=istatus)
+          endif
+          if (istatus /= 0) then
+              write(6,"('Error ', i4,' opening input file ', a , ' to delete')") istatus, trim(filename)
+          else
+              close(iunit, status='delete')
+          endif
+      end do
+      end subroutine
+
+      subroutine remove_single_file(filename, istatus)
+      implicit none
+      character(len=*), intent(in) :: filename       ! Parte fija del nombre (ej: "C2H4_2016.den")
+      integer :: ierr, iunit
+      integer, intent(out) :: istatus
+      integer :: i, lunin
+      logical :: exists, isopen
+
+      inquire(file=trim(filename), exist=exists)
+!      if (.not. exists) then
+!          write(6,"('WARNING Error trying to delete file ', a , '. File does not exist')") trim(filename)
+!          return
+!      endif
+      ! Delete file
+      inquire(file=trim(filename), opened=isopen, number=iunit)
+      if (.not. isopen) then
+            iunit = 30
+            open(unit=iunit, file=trim(filename), status='old', iostat=istatus)
+            if (istatus /= 0) then
+                write(6,"('Error opening input file ', a , ' to delete')") trim(filename)
+                return
+            endif
+      endif
+      close(iunit, status='delete')
+      end subroutine
+END MODULE
+!
+!                 END OF MODULE DAMQT_UTILS
+!...............................................................................................
+!===============================================================================================
 !                 MODULE DAMDEN320_D
 !===============================================================================================
 MODULE DAMDEN320_D

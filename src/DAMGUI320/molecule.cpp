@@ -302,6 +302,7 @@ void molecule::createeditMoleculeDialog(){
     connections.clear();
     QDLeditMolecule = new editMoleculeDialog(this);
     QDLeditMolecule->setMinimumWidth(400);
+    QDLeditMolecule->setWindowIcon(QIcon(":/images/icon.png"));
 
     connections << connect(QDLeditMolecule,SIGNAL(closed()),this,SLOT(QDLeditMolecule_close()));
     connections << connect(QDLeditMolecule,SIGNAL(closed()),this,SLOT(emitupdateRightMenu()));
@@ -377,6 +378,7 @@ void molecule::createeditMoleculeDialog(){
     scrollArea = new myScrollArea();
     scrollArea->setWidget(QDLeditMolecule);
     scrollArea->setWindowTitle(name);
+    scrollArea->setWindowIcon(QIcon(":/images/icon.png"));
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     connections << connect(scrollArea,SIGNAL(closed()),this,SLOT(QDLeditMolecule_close()));
     connections << connect(scrollArea,SIGNAL(closed()),this,SLOT(emitupdateRightMenu()));
@@ -2832,6 +2834,26 @@ void molecule::deletegrid(int i){
     }
 }
 
+double molecule::extractContourFromSghName(const std::string& filename) {
+    // regex pattern to seek the scientific number after "-d_"
+    std::regex pattern(R"([-_]d_([+-]?\d*\.?\d+[Ee][+-]?\d+)\.sgh$)");
+    std::smatch matches;
+
+    if (std::regex_search(filename, matches, pattern)) {
+        if (matches.size() > 1) {
+            try {
+                // Convert the substring to double
+                return std::stod(matches[1].str());
+            } catch (...) {
+                return 0.;
+            }
+        }
+    }
+
+    // Return 0. if pattern not found
+    return 0.;
+}
+
 void molecule::deletesurf(int i){
     if (surfaces->count() > i){
         closeisosurfeditors();
@@ -2898,7 +2920,9 @@ bool molecule::loadsurf(){
     else if (suf=="sgh"){
         if (surfaces->last()->readsgh(filename)){
             surfaces->last()->setfullname(QFileInfo(filename).absoluteFilePath());
-            surfaces->last()->setname(QFileInfo(filename).fileName());
+            surfaces->last()->setname(QFileInfo(filename).fileName());;
+            double contourvalue = extractContourFromSghName(QFileInfo(filename).fileName().toStdString());
+            surfaces->last()->setcontourvalue(contourvalue);
             return true;
         }
         else
@@ -3583,6 +3607,10 @@ bool molecule::isatomactive(int i){
     return atomactive[i];
 }
 
+bool molecule::isatomvisible(int i){
+    return atomvisible[i];
+}
+
 bool molecule::getangstromcoor(){
     return angstromcoor;
 }
@@ -3751,6 +3779,12 @@ void molecule::initatomactive(bool a){
     atomactive.clear();
     for (int i = 0 ; i < znuc.count() ; i++)
         atomactive << a;
+}
+
+void molecule::initatomvisible(bool a){
+    atomvisible.clear();
+    for (int i = 0 ; i < znuc.count() ; i++)
+        atomvisible << a;
 }
 
 void molecule::lighten(){
@@ -4165,6 +4199,14 @@ void molecule::setatomactive(int i, bool a){
     atomactive[i] = a;
 }
 
+void molecule::setatomhidden(int i){
+    atomvisible[i] = false;
+}
+
+void molecule::setatomvisible(int i){
+    atomvisible[i] = true;
+}
+
 void molecule::setballradius(qreal a){
     ballradius = a;
 };
@@ -4457,6 +4499,10 @@ QVector <QVector3D> molecule::getxyz(){
 
 float molecule::getstepwheel(){
     return stepwheel;
+}
+
+qreal molecule::getballradius(){
+    return ballradius;
 }
 
 

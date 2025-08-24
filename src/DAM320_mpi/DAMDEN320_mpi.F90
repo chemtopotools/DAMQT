@@ -420,6 +420,7 @@
             write(6,"(' ')")
         endif
     endif
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 !	Tabulates specific points if required
     if (lpoints .and. myrank .eq. 0) then
         allocate(lnegia(ncen), stat = ierr)

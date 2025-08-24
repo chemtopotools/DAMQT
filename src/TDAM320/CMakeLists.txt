@@ -26,25 +26,18 @@ set (TDAM320_EXECUTABLES "" )
 add_library(TDAMGLOBAL_mods TDAMGLOBAL16.F90 TDAMCOM16.F90 
 	TDAMPOT16.F90 TDAMDEN16.F90 lbfgsb.f linpack.f blas.f timer.f HESSIAN.F90)
 
-
-#    if (UNIX)
-#        set (TDAM320_EXECUTABLES "DAMTOPOGRAPHY.exe" "TDAMOPTIMIZER.exe")
-#    else (UNIX)  # To prevent double .exe extension
-#        set (TDAM320_EXECUTABLES "DAMTOPOGRAPHY" "TDAMOPTIMIZER"")
-#    endif (UNIX)
-
 # Create binaries
 # ===============
 #add_executable (${TDAM320_EXECUTABLES} "${TDAM320_PROGRAMS}.F90")
 
 foreach (p ${TDAM320_PROGRAMS})
-    if (UNIX)
+    if (UNIX AND NOT CYGWIN)
         add_executable(${p}.exe "${p}.F90")
         list (APPEND TDAM320_EXECUTABLES ${p}.exe )
-    else (UNIX)  # To prevent double .exe extension
+    else (UNIX AND NOT CYGWIN)  # To prevent double .exe extension
         add_executable(${p} "${p}.F90")
         list (APPEND TDAM320_EXECUTABLES ${p} )
-    endif (UNIX)
+    endif (UNIX AND NOT CYGWIN)
 endforeach (p)
 
 # Links binaries to modules

@@ -28,6 +28,10 @@
 #include "measures.h"
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 
 measures::measures(QWidget *parent) : QWidget(parent)
 {
@@ -1244,6 +1248,10 @@ void measures::resetlastselectdihedrals(){
 
 void measures::resetlastselectdist(){
     lastselectdist.clear();
+}
+
+void measures::resetRBTbohr(){
+    RBTbohr->setChecked(true);
 }
 
 void measures::set_molecules(QStringList mol){

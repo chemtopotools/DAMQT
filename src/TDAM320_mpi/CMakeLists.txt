@@ -4,7 +4,8 @@ project(TDAM320_mpi)
 
 enable_language (C Fortran)
 
-find_package(MPI REQUIRED)   # This is redundant (it has been previously checked), but convenient to remember that MPI is necessary
+find_package(MPI COMPONENTS Fortran REQUIRED)
+
 add_definitions(${MPI_Fortran_COMPILE_FLAGS})
 include_directories(${MPI_Fortran_INCLUDE_PATH})
 link_directories(${MPI_Fortran_LIBRARIES})
@@ -20,9 +21,8 @@ endif (NOT CMAKE_Fortran_FLAGS_DEBUG)
 
 # Defines auxiliary containers with program names
 # ===============================================
-set (TDAM320_mpi_PROGRAMS "TDAMTOPO16_mpi")
-
-set (TDAM320_mpi_EXECUTABLES "DAMTOPOGRAPHY_mpi.exe")
+#set (TDAM320_mpi_PROGRAMS "TDAMTOPO16_mpi")
+set (TDAM320_mpi_PROGRAMS "DAMTOPOGRAPHY_mpi")
 
 # Creates a library with modules
 # ==============================
@@ -31,7 +31,19 @@ add_library(TDAMGLOBAL_mpi_mods TDAMGLOBAL16_mpi.F90 TDAMCOM16_mpi.F90
 
 # Create binaries
 # ===============
-add_executable (${TDAM320_mpi_EXECUTABLES} "${TDAM320_mpi_PROGRAMS}.F90")
+#message("TDAM320_mpi_PROGRAMS: ${TDAM320_mpi_PROGRAMS}")
+set (TDAM320_mpi_EXECUTABLES "")  # Sets empty list
+
+foreach (p ${TDAM320_mpi_PROGRAMS})
+    if (UNIX AND NOT CYGWIN)
+        add_executable(${p}.exe "${p}.F90")
+        list (APPEND TDAM320_mpi_EXECUTABLES ${p}.exe )
+#        message("Adds ${p}")
+    else()
+        add_executable(${p} "${p}.F90")
+        list (APPEND TDAM320_mpi_EXECUTABLES ${p} )
+    endif()
+endforeach()
 
 # Links binaries to modules
 # =========================
@@ -41,6 +53,7 @@ foreach (p ${TDAM320_mpi_EXECUTABLES})
     set_target_properties("${p}" PROPERTIES LINK_FLAGS "${MPI_Fortran_LINK_FLAGS} ${MPE_LINK_FLAGS}")
     message("Adds ${p}")
 endforeach (p)
+
 
 # install executables and scripts
 # ===============================

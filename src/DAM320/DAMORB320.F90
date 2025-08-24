@@ -344,7 +344,7 @@ subroutine leeorbGTO(norbs)
     real(KREAL4), allocatable :: array(:,:), arraydx(:,:), arraydy(:,:), arraydz(:,:)
     real(KREAL) :: b2a, x, y, z
     integer(KINT) :: iaux, ierr, iorb, iuni, ix, iy, iz, norbs, nx, ny, nz
-    character(2) faux
+    character(4) faux
     real(KREAL4) :: x1a, x2a, y1a, y2a, z1a, z2a
 
     allocate(orbv(norbs), stat = ierr)
@@ -383,7 +383,7 @@ subroutine leeorbGTO(norbs)
     iuni = 10
     do iorb = 1, norbs
         iuni = iuni + 1
-        write(faux,'(i2.2)') iorbs(iorb)
+        write(faux,'(i4.4)') iorbs(iorb)
         call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//".plt")
         if (lgradient) then
             iuni = iuni + 1
@@ -453,7 +453,7 @@ subroutine leeorbGTO(norbs)
     real(KREAL4), allocatable :: array(:,:), arraydx(:,:), arraydy(:,:), arraydz(:,:)
     real(KREAL) :: b2a, ru, rv, u, v, x, y, z
     integer(KINT) :: iaux, iorb, iuni, iu, iv, norbs, nu, nv
-    character(2) faux
+    character(4) faux
     real(KREAL4) :: u1, u2, v1, v2
     allocate(orbv(norbs), stat = ierr)
     if (ierr .ne. 0) call error(1,'Memory error when allocating orbv. Stop')
@@ -495,7 +495,7 @@ subroutine leeorbGTO(norbs)
     iuni = 10
     do iorb = 1, norbs
         iuni = iuni + 1
-        write(faux,'(i2.2)') iorbs(iorb)
+        write(faux,'(i4.4)') iorbs(iorb)
         call cabecera2d(nu, nv, u1, u2, v1, v2, iuni, trim(filename)//trim(planesuffix)//"_MO_"//faux//".cnt")
     end do
 !
@@ -543,7 +543,7 @@ subroutine leeorbGTO(norbs)
     real(KREAL4), allocatable :: array(:,:), arraydx(:,:), arraydy(:,:), arraydz(:,:)
     real(KREAL) :: b2a, x, y, z
     integer(KINT) :: iaux, ierr, iorb, iuni, ix, iy, iz, norbs, nx, ny, nz
-    character(2) faux
+    character(4) faux
     real(KREAL4) :: x1a, x2a, y1a, y2a, z1a, z2a
     allocate(orbv(norbs), stat = ierr)
     if (ierr .ne. 0) call error(1,'Memory error when allocating orbv. Stop')
@@ -581,7 +581,7 @@ subroutine leeorbGTO(norbs)
     iuni = 10
     do iorb = 1, norbs
         iuni = iuni + 1
-        write(faux,'(i2.2)') iorbs(iorb)
+        write(faux,'(i4.4)') iorbs(iorb)
         call cabecera(nx, ny, nz, x1a, x2a, y1a, y2a, z1a, z2a, iuni, trim(filename)//"_MO_"//faux//".plt")
         if (lgradient) then
             iuni = iuni + 1
@@ -651,7 +651,7 @@ subroutine leeorbGTO(norbs)
     real(KREAL4), allocatable :: array(:,:)
     real(KREAL) :: b2a, ru, rv, u, v, x, y, z
     integer(KINT) :: iaux, iorb, iuni, iu, iv, norbs, nu, nv
-    character(2) faux
+    character(4) faux
     real(KREAL4) :: u1, u2, v1, v2
     allocate(orbv(norbs), stat = ierr)
     if (ierr .ne. 0) call error(1,'Memory error when allocating orbv. Stop')
@@ -693,7 +693,7 @@ subroutine leeorbGTO(norbs)
     iuni = 10
     do iorb = 1, norbs
         iuni = iuni + 1
-        write(faux,'(i2.2)') iorbs(iorb)
+        write(faux,'(i4.4)') iorbs(iorb)
         call cabecera2d(nu, nv, u1, u2, v1, v2, iuni, trim(filename)//trim(planesuffix)//"_MO_"//faux//".cnt")
     end do
 !

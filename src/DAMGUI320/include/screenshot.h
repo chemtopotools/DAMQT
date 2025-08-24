@@ -56,6 +56,7 @@ public:
     QGroupBox * getFRMcapture();
     QString getCaptureFolder();
     QString getscalesize();
+    void setCaptureFolder(QString);
 
 signals:
     void take_picture();

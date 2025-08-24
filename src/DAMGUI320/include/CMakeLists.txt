@@ -20,6 +20,7 @@ set( DAMGUI311_MOC_HDRS
     ./isosurface.h
     ./surface.h
     ./viewer2D.h
+    ./viewerdialog.h
     ./widgetsubclasses.h
   )
 

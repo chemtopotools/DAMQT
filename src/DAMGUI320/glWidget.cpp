@@ -45,6 +45,7 @@ glWidget::glWidget(QString *name, QWidget *parent) : QWidget(parent)
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint);  
     setWindowName(QString("Display no. %1").arg(*name));
+    setWindowIcon(QIcon(":/images/icon.png"));
     BTNshowlist.clear();
 
     ambientcolor = QColor(128,128,128);
@@ -136,6 +137,7 @@ glWidget::glWidget(QString *name, QWidget *parent) : QWidget(parent)
 //      mainWin settings
     mainWin->setCentralWidget(windowArea);
     mainWin->setWindowTitle(windowname);
+    mainWin->setWindowIcon(QIcon(":/images/icon.png"));
     mainWin->addDockWidget(Qt::RightDockWidgetArea,gdock);
     mainWin->resize(size);
     mainWin->move(position);
@@ -980,6 +982,8 @@ void glWidget::create_measures(){
                                 SLOT(resetlastselectdihedrals()));
     msrs_connections << connect(window, SIGNAL(resetlastselectdist()), msrs,
                                 SLOT(resetlastselectdist()));
+    msrs_connections << connect(window, SIGNAL(resetbohr()), msrs,
+                                SLOT(resetRBTbohr()));
 }
 
 //  End of function create_measures
@@ -1169,6 +1173,7 @@ void glWidget::capture(){
         return;
     }
     CaptureFolder = QFileInfo(fileName).path();
+    QDLwindow->scrshotdialog->setCaptureFolder(CaptureFolder);
     QPoint windowpos = QPoint(window->x(), window->y());
     QSize windowsize = QSize(window->size());
     window->makeCurrent();
@@ -1176,12 +1181,6 @@ void glWidget::capture(){
     window->setPosition(windowpos);
     window->setlinearattenuation(true);
     window->resize(windowsize);
-    window->setlightsposition(lightPosition);
-    window->setAmbientColor(ambientcolor);
-    window->setSpecularColor(specularcolor);
-    window->setLightColor(lightcolor);
-    window->setLightPower(lightpower);
-    window->setSpecularIndex(specularindex);
     window->setimagequality(QDLwindow->scrshotdialog->getimagequality());
     window->settransparentbg(QDLwindow->scrshotdialog->gettransparentbkg());
     window->setimagefilename(fileName);
@@ -1419,9 +1418,9 @@ bool glWidget::addcluster(QString filename){
         molecules->last()->loadcharges(znuc);
         molecules->last()->loadxyz(xyz);
         molecules->last()->setpath(QDLwindow->mespimizerdialog->getmespimizerpath());
-//        molecules->last()->setrotation(rotation.normalized());
         molecules->last()->setvisible(true);
-//        molecules->last()->initatomactive(false);
+        molecules->last()->initatomactive(false);
+        molecules->last()->initatomvisible(true);
         molecules->last()->set_ProjectFolder(ProjectFolder);
         molecules->last()->set_ProjectName(ProjectName);
         window->setdisplayEPIC(displayEPIC);
@@ -1493,6 +1492,7 @@ bool glWidget::addemptyclusterTowindow(QString filename){
     molecules->last()->setvisible(true);
     molecules->last()->setrotation(rotation.normalized());
     molecules->last()->initatomactive(false);
+    molecules->last()->initatomvisible(true);
     window->setdisplayEPIC(displayEPIC);
     connections << connect(molecules->last(), SIGNAL(updatedisplay()), this, SLOT(updatedisplay()));
     connections << connect(molecules->last(), SIGNAL(updateGL()), this, SLOT(updateGL()));
@@ -1511,7 +1511,6 @@ bool glWidget::addemptyclusterTowindow(QString filename){
     mespimirecordfilename = QDLwindow->mespimizerdialog->getrecordfilename();
     QDLwindow->mespimizerdialog->setmolecules(molecules);
     updateWindowDialog(gdock);
-//    BTNoptimizeCluster_clicked();
     this->moveToTop(windownumber);
     return true;
 }
@@ -2301,7 +2300,6 @@ void glWidget::replay_mespimization(QString filename){
                 molecules->last()->loadxyz(xyz);
                 molecules->last()->loadcharges(znuc);
                 molecules->last()->makeStructureBondsandSticks();
-//                molecules->last()->initatomactive(false);
                 if (msrs)
                     msrs->update_measure_centers(&xyz);
                 xyz.clear();
@@ -2464,7 +2462,6 @@ void glWidget::reset_mespimization(QString filename){
             xyz << QVector3D(x, y, z);
         }
     }
-//    molecules->last()->initatomactive(false);
 }
 //  End of function reset_mespimization
 //  ---------------------------------------------------------------------------------------------------------------------------
@@ -3159,6 +3156,7 @@ bool glWidget::addmolecule(){
 //        molecules->last()->setrotation(rotation.normalized());
         molecules->last()->setvisible(true);
         molecules->last()->initatomactive(false);
+        molecules->last()->initatomvisible(true);
         molecules->last()->set_ProjectFolder(ProjectFolder);
         molecules->last()->set_ProjectName(ProjectName);
         QVector <double> *charges = new QVector <double>();
@@ -3418,6 +3416,7 @@ void glWidget::retrievemolecule(){
     molecules->last()->setrotation(rotation.normalized());
     molecules->last()->setvisible(true);
     molecules->last()->initatomactive(false);
+    molecules->last()->initatomvisible(true);
     connections << connect(molecules->last(), SIGNAL(updateGL()), this, SLOT(updateGL()));
     connections << connect(molecules->last(), SIGNAL(updatedisplay()), this, SLOT(updatedisplay()));
     molecules->last()->setname(molname);

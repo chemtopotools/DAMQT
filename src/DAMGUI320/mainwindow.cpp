@@ -1,4 +1,4 @@
-﻿//  Copyright 2008-2021, Jaime Fernandez Rico, Rafael Lopez, Ignacio Ema,
+﻿//  Copyright 2008-2025, Jaime Fernandez Rico, Rafael Lopez, Ignacio Ema,
 //  Guillermo Ramirez, David Zorrilla, Anmol Kumar, Sachin D. Yeole, Shridhar R. Gadre
 // 
 //  This file is part of DAMQT.
@@ -23,7 +23,7 @@
 //
 //  File:   mainwindow.cpp
 //
-//      Last version: October 2018
+//      Last version: April 2025
 //
 #include <string.h>
 #include <QDesktopServices>
@@ -41,9 +41,54 @@
 
 #include "mainwindow.h"
 #include "GlobalInfo.h"
+#include <QOperatingSystemVersion>
 
+#ifndef ANGSTROMTOBOHR
 #define ANGSTROMTOBOHR 1.88971616463
+#endif
 
+bool isWindowsPlatform()
+{
+    #ifdef Q_OS_WIN
+        return true;
+    #else
+        return false;
+    #endif
+}
+
+bool checkMpiCommand(QString& mpiCommand)
+{
+    QProcess process;
+    QString shell;
+    QString cmdPrefix;
+    QStringList candidates;
+
+    #ifdef Q_OS_WIN
+        shell = "cmd";
+        cmdPrefix = "/C";
+        candidates = QStringList() << "where mpirun" << "where mpiexec";
+    #else
+        shell = "sh";
+        cmdPrefix = "-c";
+        candidates = QStringList() << "command -v mpirun" << "command -v mpiexec";
+    #endif
+
+    for (const QString& cmd : candidates) {
+        process.start(shell, QStringList() << cmdPrefix << cmd);
+        process.waitForFinished(-1);
+        QByteArray output = process.readAllStandardOutput();
+
+        if (!output.isEmpty()) {
+            if (cmd.contains("mpirun"))
+                mpiCommand = "mpirun";
+            else
+                mpiCommand = "mpiexec";
+            return true;
+        }
+    }
+
+    return false;
+}
 
 /* Sets initial values */
 MainWindow::MainWindow(QWidget *parent)
@@ -109,40 +154,54 @@ MainWindow::MainWindow(QWidget *parent)
 
     QString path=QApplication::applicationDirPath();
 
-    #if defined(Q_WS_WIN) || defined(Q_OS_WIN)
-        System="windows";
-        LanguagePath="";
-        iswindows = true;    // To be used by fortran programs
-        mpi = false;
-    #else //Q_WS_X11, Q_WS_MAC
-        System="linux";
-        LanguagePath=path;
-        iswindows = false;    // To be used by fortran programs
-        QProcess process;
-        process.start("sh");    
-        process.write("command -v mpirun");
-        process.closeWriteChannel();
-        process.waitForFinished(-1); // will wait forever until finished
-        QByteArray outprocess = process.readAll();
-        process.close();
-        mpi = false;
-        if (outprocess.count() != 0){
-            mpi = true;
-            mpicommand = QString("mpirun");
-        }
-        else{
-            process.start("sh");    
-            process.write("command -v mpiexec");
-            process.closeWriteChannel();
-            process.waitForFinished(-1); // will wait forever until finished
-            outprocess = process.readAll();                   
-            if (outprocess.count() != 0){
-                    mpi = true;
-                    mpicommand = QString("mpiexec");
-            }
-            process.close();
-        }
-    #endif
+    // #if defined(Q_WS_WIN) || defined(Q_OS_WIN)
+    //     System="windows";
+    //     LanguagePath="";
+    //     iswindows = true;    // To be used by fortran programs
+    //     mpi = false;
+    // #else //Q_WS_X11, Q_WS_MAC
+    //     System="linux";
+    //     LanguagePath=path;
+    //     iswindows = false;    // To be used by fortran programs
+    //     QProcess process;
+    //     process.start("sh");
+    //     process.write("command -v mpirun");
+    //     process.closeWriteChannel();
+    //     process.waitForFinished(-1); // will wait forever until finished
+    //     QByteArray outprocess = process.readAll();
+    //     process.close();
+    //     mpi = false;
+    //     if (outprocess.count() != 0){
+    //         mpi = true;
+    //         mpicommand = QString("mpirun");
+    //     }
+    //     else{
+    //         process.start("sh");
+    //         process.write("command -v mpiexec");
+    //         process.closeWriteChannel();
+    //         process.waitForFinished(-1); // will wait forever until finished
+    //         outprocess = process.readAll();
+    //         if (outprocess.count() != 0){
+    //                 mpi = true;
+    //                 mpicommand = QString("mpiexec");
+    //         }
+    //         process.close();
+    //     }
+    // #endif
+
+    iswindows = isWindowsPlatform();
+
+    mpi = checkMpiCommand(mpicommand);
+
+    if (mpi) {
+        qDebug() << "MPI is available using:" << mpicommand;
+        // usa `mpicommand` para lanzar los procesos
+    } else {
+        qDebug() << "MPI not found in PATH";
+        // desactiva opciones MPI en GUI si hace falta
+    }
+
+
     setMinimumSize(900,600);
     setWindowState(Qt::WindowMaximized);
     setWindowIcon(QIcon(":/images/icon.png"));
@@ -676,7 +735,7 @@ bool MainWindow::mustSave()
 void MainWindow::about()
 {
     QMessageBox::about(this,tr("About DAMQT"), "<h2>"+tr("DAMQT 3.2")+"</h2>" "<p>"
-        +tr("Copyright &copy; 2008-2021")+"</p>"
+        +tr("Copyright &copy; 2008-2025")+"</p>"
         "<p>"+tr("DAMQT is a program for the analysis of electron molecular density, "
         "electrostatic potential and field and Hellman-Feynman forces on nuclei.")
         +"</p>" "<p>"+tr("Developed in the Departamento de Quimica-Fisica Aplicada of "
@@ -1277,6 +1336,13 @@ void MainWindow::page_project_layouts()
 
     page_projectLayout->addStretch();
 }
+
+#include <QProcess>
+#include <QString>
+#include <QDebug>
+
+
+
 
 //    page_atdens: ATOMIC DENSITIES
 //    =============================
@@ -6255,8 +6321,8 @@ void MainWindow::readFchk()
     myProcess = new QProcess(this);
     connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
     connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(create_damproj(int, QProcess::ExitStatus)));
+    connect(myProcess, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
+    connect(myProcess, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(create_damproj(int, QProcess::ExitStatus)));
     executing = 0;
     myProcess->start(strprocess,Parameters);
 }
@@ -6606,14 +6672,14 @@ void MainWindow::processError(QProcess::ProcessError error)
         QStringList strlistproc = strprocess.split("/");
         QString message;
         if (strlistproc.length() >= 2){
-            message = QString("Error %1").arg(error)
+            message = QString("Error %1 ").arg(error)
                     + QString(tr("Process failed to start program %1\n").arg(strprocess))
                     + QString(tr("Check that the program is installed in any of the following directories: \n %1 \n %2 \n")
                                   .arg(QCoreApplication::applicationDirPath()).arg(strlistproc.at(strlistproc.length()-2)))
                     + QString(tr("or in any other directory in your $PATH"));
         }
         else{
-            message = QString("Error %1").arg(error)
+            message = QString("Error %1 ").arg(error)
                     + QString(tr("Process failed to start program %1\n").arg(strprocess))
                     + QString(tr("Check that the program is installed in the directory: \n %1 \n")
                                   .arg(QCoreApplication::applicationDirPath()))
@@ -6686,17 +6752,17 @@ void MainWindow::processOutput(int exitCode, QProcess::ExitStatus exitStatus)
         else if (executing == 23 && !TXTSGholefilename->text().isEmpty()){
             fileName=ProjectFolder+TXTSGholefilename->text()+str;
         }
-        if ((CHKatdensmpi->isChecked()   && (executing == 11)) || 
-                (RBTdens3D->isChecked() && CHKdensmpi->isChecked() && CHKdensgrid->isChecked() && (executing == 12)) ||
-                (RBTpot3D->isChecked() && CHKpotmpi->isChecked() && CHKpotgrid->isChecked() && (executing == 13)) ||
-                (RBTef3D->isChecked() && CHKefmpi->isChecked() && (executing == 15)) ||
-                (RBTMO3D->isChecked() && CHKMOmpi->isChecked() && CHKMOgrid->isChecked() && (executing == 18)) ||
-                (CHKtopompi->isChecked() && (executing == 19)) ||
-                (CHKZJmpi->isChecked()   && (executing == 20)) ||
-                (RBTdZJ3D->isChecked() && CHKdZJmpi->isChecked() && CHKdZJgrid->isChecked() && (executing == 21)) ||
-                (RBTdg3D->isChecked() && CHKdgmpi->isChecked() && (executing == 22)) ||
-                (CHKSGholempi->isChecked() && (executing == 23)) )
-                fileName.append("_mpi");
+        // if ((CHKatdensmpi->isChecked()   && (executing == 11)) ||
+        //         (RBTdens3D->isChecked() && CHKdensmpi->isChecked() && CHKdensgrid->isChecked() && (executing == 12)) ||
+        //         (RBTpot3D->isChecked() && CHKpotmpi->isChecked() && CHKpotgrid->isChecked() && (executing == 13)) ||
+        //         (RBTef3D->isChecked() && CHKefmpi->isChecked() && (executing == 15)) ||
+        //         (RBTMO3D->isChecked() && CHKMOmpi->isChecked() && CHKMOgrid->isChecked() && (executing == 18)) ||
+        //         (CHKtopompi->isChecked() && (executing == 19)) ||
+        //         (CHKZJmpi->isChecked()   && (executing == 20)) ||
+        //         (RBTdZJ3D->isChecked() && CHKdZJmpi->isChecked() && CHKdZJgrid->isChecked() && (executing == 21)) ||
+        //         (RBTdg3D->isChecked() && CHKdgmpi->isChecked() && (executing == 22)) ||
+        //         (CHKSGholempi->isChecked() && (executing == 23)) )
+        //         fileName.append("_mpi");
         if (executing == 12){
             if(RBTdensExact->isChecked()){
                 fileName.insert(fileName.indexOf("-DAMDEN"),"_exact");
@@ -7070,22 +7136,28 @@ QString MainWindow::Who_executing(int caso)
             str="DAMSTO320";
         else
             str="DAMGTO320";
+        if (CHKatdensmpi->isChecked()) str += "_mpi";
     }else if (caso == 12){
         str="DAMDEN320";
+        if (CHKdensmpi->isChecked()) str += "_mpi";
     }else if (caso == 13){
         str="DAMPOT320";
+        if (CHKpotmpi->isChecked()) str += "_mpi";
     }else if (caso == 14){
         str="DAMFORCES320";
     }else if (caso == 15){
         str="DAMFIELD320";
+        if (CHKefmpi->isChecked()) str += "_mpi";
     }else if (caso == 16){
         str="DAMFRAD320";
     }else if (caso == 17){
         str="DAMMULTROT320";
     }else if (caso == 18){
         str="DAMORB320";
+        if (CHKMOmpi->isChecked()) str += "_mpi";
     }else if (caso == 19){
         str="DAMTOPO320";
+        if (CHKtopompi->isChecked()) str += "_mpi";
     }else if (caso == 20){
         if (RBTZJacobi->isChecked()){
             str += "Jacobi-DAMZJ320";
@@ -7093,6 +7165,7 @@ QString MainWindow::Who_executing(int caso)
         else{
             str += "Zernike-DAMZJ320";
         }
+        if (CHKZJmpi->isChecked()) str += "_mpi";
     }else if (caso == 21){
         if (ldZJjacobi){
             str += "jacobi-DAMDENZJ320";
@@ -7100,10 +7173,13 @@ QString MainWindow::Who_executing(int caso)
         else{
             str += "zernike-DAMDENZJ320";
         }
+        if (CHKdZJmpi->isChecked()) str += "_mpi";
     }else if (caso == 22){
         str="DAMDENGRAD320";
+        if (CHKdgmpi->isChecked()) str += "_mpi";
     }else if (caso == 23){
         str="DAMSGHOLE320";
+        if (CHKSGholempi->isChecked()) str += "_mpi";
     }
     return str;
 }
@@ -9651,6 +9727,7 @@ void MainWindow::CHKatdensmpi_changed(int state)
 
 //    Executes external program DAM (Partition of molecular density into atomic densities)
 void MainWindow::execDam(){
+    QString stdoutput("");
     if (lslater){
         QString sxyzfilename = ProjectFolder+ProjectName+".sxyz";
         if (!(QFile::exists(sxyzfilename))){
@@ -9664,10 +9741,10 @@ void MainWindow::execDam(){
         QString DirNombreArchivo = ProjectFolder+ProjectName+".damproj";
         existsinp(DirNombreArchivo,1,1,false);
         inputdatafile("DAMSTO320.inp","DAMSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAM from .damproj file
-        QString fileName=ProjectFolder+ProjectName+"-DAMSTO320.inp";
-        QFile file(fileName);
+        QString stdinput = ProjectFolder + ProjectName + "-DAMSTO320.inp";
+        QFile file(stdinput);
         if (!file.open(QFile::ReadOnly | QFile::Text)) {
-            QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+            QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
             return;
         }
         if (CHKatdensinput->isChecked()){
@@ -9678,44 +9755,20 @@ void MainWindow::execDam(){
             return;
         }
         file.close();
-        QString stdinput = ProjectFolder + ProjectName + "-DAMSTO320.inp";
-        QString stdoutput;
-        QString strprocess;
-        if (CHKatdensmpi->isChecked()){
-            QString processname = "DAMSTO320_mpi.exe";
-            QString execName = get_execName(processname, QString("DAM320_mpi"));
-            if (execName.isEmpty())
-                return;
-            strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                        .arg(SPBatdensmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-            stdoutput = ProjectFolder + ProjectName + "-DAMSTO320_mpi.out";
-        }
-        else{
-            QString processname = "DAMSTO320.exe";
-            QString execName = get_execName(processname, QString("DAM320"));
-            if (execName.isEmpty())
-                return;
-            strprocess = QString(execName);
-            stdoutput = ProjectFolder + ProjectName + "-DAMSTO320.out";
-        }
-        myProcess = new QProcess(this);
-        myProcess->setStandardInputFile(stdinput);
-        myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-        myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-        connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-        connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-        connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-        executing = 11;
-        myProcess->start(strprocess);
+        QString rootname("DAMSTO320");
+        QString subdir("DAM320");
+        int nprocs = SPBatdensmpi->value();
+        int executeindex = 11;
+        executeprogram(CHKatdensmpi->isChecked(), ProjectName, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
     }
     else{
         QString DirNombreArchivo = ProjectFolder+ProjectName+".damproj";
         existsinp(DirNombreArchivo,1,1,false);
         inputdatafile("DAMGTO320.inp","G-DAMSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for GDAM from .damproj file
-        QString fileName=ProjectFolder+ProjectName+"-DAMGTO320.inp";
-        QFile file(fileName);
+        QString stdinput = ProjectFolder + ProjectName + "-DAMGTO320.inp";
+        QFile file(stdinput);
         if (!file.open(QFile::ReadOnly | QFile::Text)) {
-            QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+            QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
             return;
         }
         if (CHKatdensinput->isChecked()){
@@ -9726,36 +9779,11 @@ void MainWindow::execDam(){
             return;
         }
         file.close();
-        QString stdinput = ProjectFolder + ProjectName + "-DAMGTO320.inp";
-        QString stdoutput;
-        QString strprocess;
-
-        if (CHKatdensmpi->isChecked()){
-            QString processname = "DAMGTO320_mpi.exe";
-            QString execName = get_execName(processname, QString("DAM320_mpi"));
-            if (execName.isEmpty())
-                return;
-            strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                        .arg(SPBatdensmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-            stdoutput = ProjectFolder + ProjectName + "-DAMGTO320_mpi.out";
-        }
-        else{
-            QString processname = "DAMGTO320.exe";
-            QString execName = get_execName(processname, QString("DAM320"));
-            if (execName.isEmpty())
-                return;
-            strprocess = QString(execName);
-            stdoutput = ProjectFolder + ProjectName + "-DAMGTO320.out";
-        }
-        myProcess = new QProcess(this);
-        myProcess->setStandardInputFile(stdinput);
-        myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-        myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-        connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-        connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-        connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-        executing = 11;
-        myProcess->start(strprocess);
+        QString rootname("DAMGTO320");
+        QString subdir("DAM320");
+        int nprocs = SPBatdensmpi->value();
+        int executeindex = 11;
+        executeprogram(CHKatdensmpi->isChecked(), ProjectName, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
     }
     defineRanges();
 }
@@ -9763,6 +9791,54 @@ void MainWindow::execDam(){
 void MainWindow::SPBatdensmpi_changed(int nprocessors)
 {
     SPBatdensmpi->setValue(nprocessors);
+}
+
+bool MainWindow::executeprogram(bool runmipi, QString outputprefix, QString rootname, QString stdinput, QString stdoutput, QString subdir, int nprocs, int executeindex){
+    QString strprocess;
+    QStringList args;
+    if (runmipi){
+        QString processname = rootname + "_mpi.exe";
+        QString execName = get_execName(processname, subdir + "_mpi");
+        if (execName.isEmpty())
+            return false;
+        if (isWindowsPlatform()) {
+            // Windows + Cygwin – wrapper script in the same directory as the GUI executable
+            QString wrapperScript = QDir(QCoreApplication::applicationDirPath()).filePath("run_mpi.sh");
+            strprocess = QString("bash");
+            args << wrapperScript
+                << QString::number(nprocs)
+                << execName
+                << stdinput;
+        } else {
+            // Linux/macOS – use native mpirun
+            strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
+            .arg(nprocs).arg(TXTmpiflags->text()).arg(execName);
+        }
+        if (stdoutput.isEmpty()) stdoutput = ProjectFolder + outputprefix + "-" + rootname + "_mpi.out";
+    }
+    else{
+        QString processname = rootname + ".exe";
+        QString execName = get_execName(processname, subdir);
+        if (execName.isEmpty())
+            return false;
+        strprocess = QString(execName);
+        if (stdoutput.isEmpty()) stdoutput = ProjectFolder + outputprefix + "-" + rootname + ".out";
+    }
+
+    myProcess = new QProcess(this);
+    myProcess->setStandardInputFile(stdinput);
+    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
+    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
+    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
+    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
+    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
+    executing = executeindex;
+    if (isWindowsPlatform()) {
+        myProcess->start(strprocess, args);
+    } else {
+        myProcess->start(strprocess);
+    }
+    return true;
 }
 
 void MainWindow::SPBatdenslmaxexp_changed()
@@ -9906,10 +9982,10 @@ void MainWindow::execDamdengrad()
     if (!TXTdgfilename->text().isEmpty())
             fileNameDg=TXTdgfilename->text();
     inputdatafile("DAMDENGRAD320.inp","DAMDENGRADSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAMDENGRAD from .damproj file
-    QString fileName=ProjectFolder+ProjectName+"-DAMDENGRAD320.inp";
-    QFile file(fileName);
+    QString stdinput = ProjectFolder + ProjectName + "-DAMDENGRAD320.inp";
+    QFile file(stdinput);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
         return;
     }
     if (CHKdginput->isChecked()){
@@ -9920,35 +9996,15 @@ void MainWindow::execDamdengrad()
         return;
     }
     file.close();
-    QString stdinput = ProjectFolder + ProjectName + "-DAMDENGRAD320.inp";
-    QString stdoutput;
-    QString strprocess;
-    if (RBTdg3D->isChecked() && CHKdgmpi->isChecked()){
-        QString processname = "DAMDENGRAD320_mpi.exe";
-        QString execName = get_execName(processname, QString("DAM320_mpi"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                    .arg(SPBdgmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-        stdoutput = ProjectFolder + fileNameDg + "-DAMDENGRAD320_mpi.out";
-    }
-    else{
-        QString processname = "DAMDENGRAD320.exe";
-        QString execName = get_execName(processname, QString("DAM320"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString(execName);
-        stdoutput = ProjectFolder + fileNameDg + "-DAMDENGRAD320.out";
-    }
-    myProcess = new QProcess(this);
-    myProcess->setStandardInputFile(stdinput);
-    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    executing = 22;
-    myProcess->start(strprocess);
+    QString rootname("DAMDENGRAD320");
+    QString subdir("DAM320");
+    QString stdoutput("");
+    int nprocs = SPBdgmpi->value();
+    int executeindex = 22;
+    bool runmpi = RBTdg3D->isChecked() && CHKdgmpi->isChecked();
+
+    executeprogram(runmpi, fileNameDg, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
+
 }
 
 
@@ -10177,10 +10233,10 @@ void MainWindow::execDamfield()
     if (!TXTeffilename->text().isEmpty())
             fileNameEf=TXTeffilename->text();
     inputdatafile("DAMFIELD320.inp","DAMFIELDSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAMFIELD from .damproj file
-    QString fileName=ProjectFolder+ProjectName+"-DAMFIELD320.inp";
-    QFile file(fileName);
+    QString stdinput = ProjectFolder + ProjectName + "-DAMFIELD320.inp";
+    QFile file(stdinput);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
         return;
     }
     if (CHKefinput->isChecked()){
@@ -10191,35 +10247,15 @@ void MainWindow::execDamfield()
         return;
     }
     file.close();
-    QString stdinput = ProjectFolder + ProjectName + "-DAMFIELD320.inp";
-    QString stdoutput;
-    QString strprocess;
-    if (RBTef3D->isChecked() && CHKefmpi->isChecked()){
-        QString processname = "DAMFIELD320_mpi.exe";
-        QString execName = get_execName(processname, QString("DAM320_mpi"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                    .arg(SPBefmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-        stdoutput = ProjectFolder + fileNameEf + "-DAMFIELD320_mpi.out";
-    }
-    else{
-        QString processname = "DAMFIELD320.exe";
-        QString execName = get_execName(processname, QString("DAM320"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString(execName);
-        stdoutput = ProjectFolder + fileNameEf + "-DAMFIELD320.out";
-    }
-    myProcess = new QProcess(this);
-    myProcess->setStandardInputFile(stdinput);
-    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    executing = 15;
-    myProcess->start(strprocess);
+    QString rootname("DAMFIELD320");
+    QString subdir("DAM320");
+    QString stdoutput("");
+    int nprocs = SPBefmpi->value();
+    int executeindex = 15;
+    bool runmpi = RBTef3D->isChecked() && CHKefmpi->isChecked();
+
+    executeprogram(runmpi, fileNameEf, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
+
 }
 
 
@@ -10677,10 +10713,10 @@ void MainWindow::execDamden()
             fileNameOut=TXTdensdamdenfilename->text();
 
     inputdatafile("DAMDEN320.inp","DAMDENSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAMDEN from .damproj file
-    QString fileName=ProjectFolder+ProjectName+"-DAMDEN320.inp";
-    QFile file(fileName);
+    QString stdinput = ProjectFolder + ProjectName + "-DAMDEN320.inp";
+    QFile file(stdinput);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
         return;
     }
     if (CHKdensinput->isChecked()){
@@ -10691,45 +10727,20 @@ void MainWindow::execDamden()
         return;
     }
     file.close();
-    QString stdinput = ProjectFolder + ProjectName + "-DAMDEN320.inp";
-    QString stdoutput;
-    QString strprocess;
+    QString rootname("DAMDEN320");
+    QString subdir("DAM320");
+    QString stdoutput("");
+    int nprocs = SPBdensmpi->value();
+    int executeindex = 12;
+    bool runmpi = RBTdens3D->isChecked() && CHKdensmpi->isChecked() && CHKdensgrid->isChecked();
 
-    if (RBTdens3D->isChecked() && CHKdensmpi->isChecked() && CHKdensgrid->isChecked()){
-        QString processname = "DAMDEN320_mpi.exe";
-        QString execName = get_execName(processname, QString("DAM320_mpi"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                .arg(SPBdensmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-        stdoutput = ProjectFolder + fileNameOut;
-        if (RBTdensExact->isChecked()){
-            stdoutput += "_exact";
-        }
-        stdoutput += "-DAMDEN320_mpi.out";
+    if (RBTdensExact->isChecked()){
+        if (runmpi)
+            stdoutput = ProjectFolder + fileNameOut + "_exact-DAMDEN320_mpi.out";
+        else
+            stdoutput = ProjectFolder + fileNameOut + "_exact-DAMDEN320.out";
     }
-    else{
-        QString processname = "DAMDEN320.exe";
-        QString execName = get_execName(processname, QString("DAM320"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString(execName);
-        stdoutput = ProjectFolder + fileNameOut;
-        if (RBTdensExact->isChecked()){
-            stdoutput += "_exact";
-        }
-        stdoutput += "-DAMDEN320.out";
-    }
-    myProcess = new QProcess(this);
-    myProcess->setStandardInputFile(stdinput);
-    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    executing = 12;
-
-    myProcess->start(strprocess);
+    executeprogram(runmpi, fileNameOut, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
 
     if (RBTdens2D->isChecked() && RBTdensplane->isChecked()){
         QString fileinpstr=ProjectFolder+ProjectName+".xyz";
@@ -11196,10 +11207,10 @@ void MainWindow::execDampot()
     if (!TXTpotgdampotfilename->text().isEmpty())
             fileNameOut=TXTpotgdampotfilename->text();
     inputdatafile("DAMPOT320.inp","DAMPOTSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAMPOT from .damproj file
-    QString fileName=ProjectFolder+ProjectName+"-DAMPOT320.inp";
-    QFile file(fileName);
+    QString stdinput = ProjectFolder + ProjectName + "-DAMPOT320.inp";
+    QFile file(stdinput);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
         return;
     }
     if (CHKpotinput->isChecked()){
@@ -11210,47 +11221,20 @@ void MainWindow::execDampot()
         return;
     }
     file.close();
-    QString stdinput = ProjectFolder + ProjectName + "-DAMPOT320.inp";
-    QString stdoutput;
-    QString strprocess;
-    if (RBTpot3D->isChecked() && CHKpotmpi->isChecked() && CHKpotgrid->isChecked()){
-        QString processname;
-        if (natom >= 10*SPBpotmpi->value())
-            processname = "DAMPOT320_mpi_new.exe";
+    QString rootname("DAMPOT320");
+    QString subdir("DAM320");
+    QString stdoutput("");
+    int nprocs = SPBpotmpi->value();
+    int executeindex = 13;
+    bool runmpi = RBTpot3D->isChecked() && CHKpotmpi->isChecked() && CHKpotgrid->isChecked();
+
+    if (CHKpotexact->isChecked()){
+        if (runmpi)
+            stdoutput = ProjectFolder + fileNameOut + "_exact-DAMPOT320_mpi.out";
         else
-            processname = "DAMPOT320_mpi.exe";
-        QString execName = get_execName(processname, QString("DAM320_mpi"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                    .arg(SPBpotmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-        stdoutput = ProjectFolder + fileNameOut;
-        if (CHKpotexact->isChecked()){
-            stdoutput += "_exact";
-        }
-        stdoutput += "-DAMPOT320_mpi.out";
+            stdoutput = ProjectFolder + fileNameOut + "_exact-DAMPOT320.out";
     }
-    else{
-        QString processname = "DAMPOT320.exe";
-        QString execName = get_execName(processname, QString("DAM320"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString(execName);
-        stdoutput = ProjectFolder + fileNameOut;
-        if (CHKpotexact->isChecked()){
-            stdoutput += "_exact";
-        }
-        stdoutput += "-DAMPOT320.out";
-    }
-    myProcess = new QProcess(this);
-    myProcess->setStandardInputFile(stdinput);
-    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    executing = 13;
-    myProcess->start(strprocess);
+    executeprogram(runmpi, fileNameOut, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
 
     if (RBTpot2D->isChecked() && RBTpotplane->isChecked()){
         QString fileinpstr=ProjectFolder+ProjectName+".xyz";
@@ -11597,10 +11581,10 @@ void MainWindow::execDamorb()
     if (!TXTMOfilename->text().isEmpty())
             fileNameOut=TXTMOfilename->text();
     inputdatafile("DAMORB320.inp","DAMORBSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAMORB from .damproj file
-    QString fileName=ProjectFolder+ProjectName+"-DAMORB320.inp";
-    QFile file(fileName);
+    QString stdinput = ProjectFolder + ProjectName + "-DAMORB320.inp";
+    QFile file(stdinput);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
         return;
     }
     if (CHKMOinput->isChecked()){
@@ -11611,35 +11595,15 @@ void MainWindow::execDamorb()
         return;
     }
     file.close();
-    QString stdinput = ProjectFolder + ProjectName + "-DAMORB320.inp";
-    QString stdoutput;
-    QString strprocess;
-    if (RBTMO3D->isChecked() && CHKMOmpi->isChecked()){
-        QString processname = "DAMORB320_mpi.exe";
-        QString execName = get_execName(processname, QString("DAM320_mpi"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                    .arg(SPBMOmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-        stdoutput = ProjectFolder + fileNameOut + "-DAMORB320_mpi.out";
-    }
-    else{
-        QString processname = "DAMORB320.exe";
-        QString execName = get_execName(processname, QString("DAM320"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString(execName);
-        stdoutput = ProjectFolder + fileNameOut + "-DAMORB320.out";
-    }
-    myProcess = new QProcess(this);
-    myProcess->setStandardInputFile(stdinput);
-    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    executing = 18;    
-    myProcess->start(strprocess);
+    QString rootname("DAMORB320");
+    QString subdir("DAM320");
+    QString stdoutput("");
+    int nprocs = SPBMOmpi->value();
+    int executeindex = 18;
+    bool runmpi = RBTMO3D->isChecked() && CHKMOmpi->isChecked();
+
+    executeprogram(runmpi, fileNameOut, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
+
 }
 
 /* Import name of a file with molecular orbitals*/
@@ -12175,12 +12139,14 @@ void MainWindow::execDamSGhole()
     existsinp(DirNombreArchivo,13,1,false);
     QString fileNameOut = ProjectName;
     if (!TXTSGholefilename->text().isEmpty())
+        fileNameOut = TXTSGholefilename->text();
+    if (!TXTSGholefilename->text().isEmpty())
             fileNameOut=TXTSGholefilename->text();
     inputdatafile("DAMSGHOLE320.inp","DAMSGHOLESECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAMSGHOLE from .damproj file
-    QString fileName=ProjectFolder+ProjectName+"-DAMSGHOLE320.inp";
-    QFile file(fileName);
+    QString stdinput = ProjectFolder + ProjectName + "-DAMSGHOLE320.inp";
+    QFile file(stdinput);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
         return;
     }
     if (CHKSGholeinput->isChecked()){
@@ -12191,43 +12157,21 @@ void MainWindow::execDamSGhole()
         return;
     }
     file.close();
-    QString stdinput = ProjectFolder + ProjectName + "-DAMSGHOLE320.inp";
-    QString stdoutput;
-    QString strprocess;
-    if (CHKSGholempi->isChecked()){
-        QString processname = "DAMSGHOLE320_mpi.exe";
-        QString execName = get_execName(processname, QString("DAM320_mpi"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                    .arg(SPBSGholempi->value()).arg(TXTmpiflags->text()).arg(execName);
-        stdoutput = ProjectFolder + fileNameOut;
-        if (CHKSGhexactMESP->isChecked()){
-            stdoutput += "_exact";
-        }
-        stdoutput += "-DAMSGHOLE320_mpi.out";
+    QString rootname("DAMSGHOLE320");
+    QString subdir("DAM320");
+    QString stdoutput("");
+    int nprocs = SPBSGholempi->value();
+    int executeindex = 23;
+    bool runmpi = CHKSGholempi->isChecked();
+
+    if (CHKSGhexactMESP->isChecked()){
+        if (runmpi)
+            stdoutput = ProjectFolder + fileNameOut + "_exact-DAMSGHOLE320_mpi.out";
+        else
+            stdoutput = ProjectFolder + fileNameOut + "_exact-DAMSGHOLE320.out";
     }
-    else{
-        QString processname = "DAMSGHOLE320.exe";
-        QString execName = get_execName(processname, QString("DAM320"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString(execName);
-        stdoutput = ProjectFolder + fileNameOut;
-        if (CHKSGhexactMESP->isChecked()){
-            stdoutput += "_exact";
-        }
-        stdoutput += "-DAMSGHOLE320.out";
-    }
-    myProcess = new QProcess(this);
-    myProcess->setStandardInputFile(stdinput);
-    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    executing = 23;
-    myProcess->start(strprocess);
+    executeprogram(runmpi, fileNameOut, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
+
 }
 
 /* Import name of a density grid file*/
@@ -12472,10 +12416,10 @@ void MainWindow::execDamTopography()
     if (!TXTtopofilename->text().isEmpty())
             fileNameOut=TXTtopofilename->text();
     inputdatafile("DAMTOPO320.inp","DAMTOPOSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAMTOPO from .damproj file
-    QString fileName=ProjectFolder+ProjectName+"-DAMTOPO320.inp";
-    QFile file(fileName);
+    QString stdinput = ProjectFolder + ProjectName + "-DAMTOPO320.inp";
+    QFile file(stdinput);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
         return;
     }
     if (CHKtopoinput->isChecked()){
@@ -12486,41 +12430,24 @@ void MainWindow::execDamTopography()
         return;
     }
     file.close();
-    QString stdinput = ProjectFolder + ProjectName + "-DAMTOPO320.inp";
-    QString stdoutput;
-    QString strprocess;
-    if (CHKtopompi->isChecked()){
-        QString processname = "DAMTOPOGRAPHY_mpi.exe";
-        QString execName = get_execName(processname, QString("TDAM320_mpi"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                    .arg(SPBtopompi->value()).arg(TXTmpiflags->text()).arg(execName);
-        if (RBTtopodensity->isChecked())
-            stdoutput = ProjectFolder + fileNameOut + "-DAMTOPO320_mpi-d.out";
-        else
-            stdoutput = ProjectFolder + fileNameOut + "-DAMTOPO320_mpi-v.out";
-    }
-    else{
-        QString processname = "DAMTOPOGRAPHY.exe";
-        QString execName = get_execName(processname, QString("TDAM320"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString(execName);
-        if (RBTtopodensity->isChecked())
-            stdoutput = ProjectFolder + fileNameOut + "-DAMTOPO320-d.out";
-        else
-            stdoutput = ProjectFolder + fileNameOut + "-DAMTOPO320-v.out";
-    }
-    myProcess = new QProcess(this);
-    myProcess->setStandardInputFile(stdinput);
-    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    executing = 19;
-    myProcess->start(strprocess);
+    QString rootname("DAMTOPOGRAPHY");
+    QString subdir("TDAM320");
+    QString stdoutput("");
+    int nprocs = SPBtopompi->value();
+    int executeindex = 19;
+    bool runmpi = CHKtopompi->isChecked();
+
+    if (runmpi)
+        stdoutput = ProjectFolder + fileNameOut + "-DAMTOPO320_mpi";
+    else
+        stdoutput = ProjectFolder + fileNameOut + "-DAMTOPO320";
+    if (RBTtopodensity->isChecked())
+        stdoutput =stdoutput + "-d.out";
+    else
+        stdoutput = stdoutput + "-v.out";
+
+    executeprogram(runmpi, fileNameOut, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
+
 }
 
 /* Import name of a file with molecular orbitals*/
@@ -12607,128 +12534,55 @@ void MainWindow::CHKZJmpi_changed(int state)
 
 //    Executes external program DAM (Partition of molecular density into atomic densities)
 void MainWindow::execDamZJ(){
-        defineRanges();
+    defineRanges();
+
+    QString DirNombreArchivo = ProjectFolder+ProjectName+".damproj";
+    existsinp(DirNombreArchivo,10,1,false);
+    inputdatafile("DAMZJ320.inp","DAMZJSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAM from .damproj file
+    QString stdinput = ProjectFolder + ProjectName + "-DAMZJ320.inp";
+    QFile file(stdinput);
+    if (!file.open(QFile::ReadOnly | QFile::Text)) {
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
+        return;
+    }
+    if (CHKZJinput->isChecked()){
+        QTextStream in(&file);
+        textEdit->setFont(QFont("Courier",10));
+        textEdit->setPlainText(in.readAll());
+        QMessageBox::information(this, tr("DAMQT"),tr("File %1 has been successfully created").arg(ProjectFolder+ProjectName+"-DAMZJ320.inp"));
+        return;
+    }
+    file.close();
+    QString rootname;
     if (lslater){
-        QString DirNombreArchivo = ProjectFolder+ProjectName+".damproj";
-        existsinp(DirNombreArchivo,10,1,false);
-        inputdatafile("DAMZJ320.inp","DAMZJSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAM from .damproj file
-        QString fileName=ProjectFolder+ProjectName+"-DAMZJ320.inp";
-        QFile file(fileName);
-        if (!file.open(QFile::ReadOnly | QFile::Text)) {
-            QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
-            return;
-        }
-        if (CHKZJinput->isChecked()){
-            QTextStream in(&file);
-            textEdit->setFont(QFont("Courier",10));
-            textEdit->setPlainText(in.readAll());
-            QMessageBox::information(this, tr("DAMQT"),tr("File %1 has been successfully created").arg(ProjectFolder+ProjectName+"-DAMZJ320.inp"));
-            return;
-        }
-        file.close();
-        QString stdinput = ProjectFolder + ProjectName + "-DAMZJ320.inp";
-        QString stdoutput;
-        QString strprocess;
-        if (CHKZJmpi->isChecked()){
-            QString processname = "DAMZernike-Jacobi_STO_mpi.exe";
-            QString execName = get_execName(processname, QString("DAMZernike320_mpi"));
-            if (execName.isEmpty())
-                return;
-            strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                        .arg(SPBZJmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-            stdoutput = ProjectFolder + ProjectName;
-            if (RBTZJacobi->isChecked()){
-                stdoutput +=  + "-Jacobi-DAMZJ320_mpi.out";
-            }
-            else{
-                stdoutput +=  + "-Zernike-DAMZJ320_mpi.out";
-            }
-        }
-        else{
-            QString processname = "DAMZernike-Jacobi_STO.exe";
-            QString execName = get_execName(processname, QString("DAMZernike320"));
-            if (execName.isEmpty())
-                return;
-            strprocess = QString(execName);
-            stdoutput = ProjectFolder + ProjectName;
-            if (RBTZJacobi->isChecked()){
-                stdoutput +=  + "-Jacobi-DAMZJ320.out";
-            }
-            else{
-                stdoutput +=  + "-Zernike-DAMZJ320.out";
-            }
-        }
-        myProcess = new QProcess(this);
-        myProcess->setStandardInputFile(stdinput);
-        myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-        myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-        connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-        connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-        connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-        executing = 20;
-        myProcess->start(strprocess);
+        rootname = "DAMZernike-Jacobi_STO";
     }
     else{
-        QString DirNombreArchivo = ProjectFolder+ProjectName+".damproj";
-        existsinp(DirNombreArchivo,10,1,false);
-        inputdatafile("DAMZJ320.inp","DAMZJSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for GDAM from .damproj file
-        QString fileName=ProjectFolder+ProjectName+"-DAMZJ320.inp";
-        QFile file(fileName);
-        if (!file.open(QFile::ReadOnly | QFile::Text)) {
-            QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
-            return;
-        }
-        if (CHKZJinput->isChecked()){
-            QTextStream in(&file);
-            textEdit->setFont(QFont("Courier",10));
-            textEdit->setPlainText(in.readAll());
-            QMessageBox::information(this, tr("DAMQT"),tr("File %1 has been successfully created").arg(ProjectFolder+ProjectName+"-DAMZJ320.inp"));
-            return;
-        }
-        file.close();
-        QString stdinput = ProjectFolder + ProjectName + "-DAMZJ320.inp";
-        QString stdoutput;
-        QString strprocess;
-
-        if (CHKZJmpi->isChecked()){
-            QString processname = "DAMZernike-Jacobi_GTO_mpi.exe";
-            QString execName = get_execName(processname, QString("DAMZernike320_mpi"));
-            if (execName.isEmpty())
-                return;
-            strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                        .arg(SPBZJmpi->value()).arg(TXTmpiflags->text()).arg(execName);
-            stdoutput = ProjectFolder + ProjectName;
-            if (RBTZJacobi->isChecked()){
-                stdoutput +=  + "-Jacobi-DAMZJ320_mpi.out";
-            }
-            else{
-                stdoutput +=  + "-Zernike-DAMZJ320_mpi.out";
-            }
+        rootname = "DAMZernike-Jacobi_GTO";
+    }
+    QString subdir("DAMZernike320");
+    QString stdoutput = ProjectFolder + ProjectName;
+    int nprocs = SPBZJmpi->value();
+    int executeindex = 20;
+    bool runmpi = CHKZJmpi->isChecked();
+    if (runmpi){
+        if (RBTZJacobi->isChecked()){
+            stdoutput +=  + "-Jacobi-DAMZJ320_mpi.out";
         }
         else{
-            QString processname = "DAMZernike-Jacobi_GTO.exe";
-            QString execName = get_execName(processname, QString("DAMZernike320"));
-            if (execName.isEmpty())
-                return;
-            strprocess = QString(execName);
-            stdoutput = ProjectFolder + ProjectName;
-            if (RBTZJacobi->isChecked()){
-                stdoutput +=  + "-Jacobi-DAMZJ320.out";
-            }
-            else{
-                stdoutput +=  + "-Zernike-DAMZJ320.out";
-            }
+            stdoutput +=  + "-Zernike-DAMZJ320_mpi.out";
         }
-        myProcess = new QProcess(this);
-        myProcess->setStandardInputFile(stdinput);
-        myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-        myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-        connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-        connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-        connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-        executing = 20;
-        myProcess->start(strprocess);
     }
+    else{
+        if (RBTZJacobi->isChecked()){
+            stdoutput +=  + "-Jacobi-DAMZJ320.out";
+        }
+        else{
+            stdoutput +=  + "-Zernike-DAMZJ320.out";
+        }
+    }
+    executeprogram(CHKZJmpi->isChecked(), ProjectName, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
+
 }
 
 void MainWindow::SPBZJkmax_changed()
@@ -12948,15 +12802,20 @@ void MainWindow::ChooseZJ_changed()
 void MainWindow::execDamdenZJ()
 {
     QString DirNombreArchivo = ProjectFolder+ProjectName+".damproj";
+    if (TXTdZJImportfile->text().isEmpty()){
+        QMessageBox::warning(this, tr("DAMQT"),tr("Choose a file with a Zernike or Jacobi expansion"));
+        return;
+    }
+//    QString DirNombreArchivo = ProjectFolder+ProjectName+".damproj";
     existsinp(DirNombreArchivo,11,1,false);
     QString fileNameOut = ProjectName;
     if (!TXTdZJfilename->text().isEmpty())
             fileNameOut=TXTdZJfilename->text();
     inputdatafile("DAMDENZJ320.inp","DAMDENZJSECT",DirNombreArchivo, ProjectFolder, ProjectName); // Creates a file with input data for DAMDENZJ from .damproj file
-    QString fileName=ProjectFolder+ProjectName+"-DAMDENZJ320.inp";
-    QFile file(fileName);
+    QString stdinput = ProjectFolder + ProjectName + "-DAMDENZJ320.inp";
+    QFile file(stdinput);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(fileName));
+        QMessageBox::warning(this, tr("DAMQT"),tr("Cannot create input file %1").arg(stdinput));
         return;
     }
     if (CHKdZJinput->isChecked()){
@@ -12967,9 +12826,13 @@ void MainWindow::execDamdenZJ()
         return;
     }
     file.close();
-    QString stdinput = ProjectFolder + ProjectName + "-DAMDENZJ320.inp";
-    QString stdoutput;
-    QString strprocess;
+    QString rootname("DAMDENZJ320");
+    QString subdir("DAMZernike320");
+    QString stdoutput("");
+    int nprocs = SPBdZJmpi->value();
+    int executeindex = 21;
+    bool runmpi = RBTdZJ3D->isChecked() && CHKdZJmpi->isChecked();
+
     QString type = QFileInfo(TXTdZJImportfile->text()).suffix();
     if (type=="jacobi"){
         ldZJjacobi = true;
@@ -12977,33 +12840,14 @@ void MainWindow::execDamdenZJ()
     else{
         ldZJjacobi = false;
     }
-    if (RBTdZJ3D->isChecked() && CHKdZJmpi->isChecked()){
-        QString processname = "DAMDENZJ320_mpi.exe";
-        QString execName = get_execName(processname, QString("DAMZernike320_mpi"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString("%1 %2 %3 %4 %5").arg(TXTmpicommand->text()).arg("-np")
-                    .arg(SPBdZJmpi->value()).arg(TXTmpiflags->text()).arg(execName);
 
+    if (runmpi)
         stdoutput = ProjectFolder + fileNameOut + "-" + type + "-DAMDENZJ320_mpi.out";
-    }
-    else{
-        QString processname = "DAMDENZJ320.exe";
-        QString execName = get_execName(processname, QString("DAMZernike320"));
-        if (execName.isEmpty())
-            return;
-        strprocess = QString(execName);
+    else
         stdoutput = ProjectFolder + fileNameOut + "-" + type + "-DAMDENZJ320.out";
-    }
-    myProcess = new QProcess(this);
-    myProcess->setStandardInputFile(stdinput);
-    myProcess->setStandardOutputFile(stdoutput,QIODevice::Truncate);
-    myProcess->setStandardErrorFile(stdoutput,QIODevice::Append);
-    connect(myProcess, SIGNAL(started()), this, SLOT(processStart()));
-    connect(myProcess, SIGNAL(error(QProcess::ProcessError)), this, SLOT(processError(QProcess::ProcessError)));
-    connect(myProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processOutput(int, QProcess::ExitStatus)));
-    executing = 21;
-    myProcess->start(strprocess);
+
+    executeprogram(runmpi, fileNameOut, rootname, stdinput, stdoutput, subdir, nprocs, executeindex);
+
 }
 
 /* Import name of a file with Zernike or Jacobi expansion*/
@@ -15319,22 +15163,6 @@ QString MainWindow::get_python(){
 /********************************  External packages handlers       *******************************/
 /**************************************************************************************************/
 
-/*******************************************************************************************************/
-/********************************  Class ViewerDialog  implementation  *******************************/
-/*******************************************************************************************************/
-
-ViewerDialog::ViewerDialog()
-{
-
-}
-
-ViewerDialog::~ViewerDialog(){
-
-}
-
-void ViewerDialog::reject(){
-    emit closed();
-}
 
 /*******************************************************************************************************/
 /********************************  Class mainmenu  implementation  *******************************/

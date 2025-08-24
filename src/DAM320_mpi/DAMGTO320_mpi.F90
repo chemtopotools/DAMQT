@@ -83,6 +83,7 @@ END MODULE
     USE DAM320_D
     USE DAM320_CONST_D
     USE DAM320_DATA_D
+    USE DAMQT_UTILS
     USE GAUSS
     USE PARALELO
     implicit none
@@ -97,6 +98,7 @@ END MODULE
     integer(KINT), allocatable, dimension(:) :: inamelist, lengthscf, idisp, jjlen, ncenranks
     real(KREAL), allocatable :: rnamelist(:)
     integer(KINT) :: icfaux(2)
+    character(len=256) :: base, output
     namelist / options / ioptaj, iswindows, lmaxexp, lmultmx, longoutput, lvalence, lzdo, umbral, umbralres
     call MPI_INIT(ierr)
     call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, ierr)
@@ -483,13 +485,26 @@ END MODULE
         endif
     endif
     if (myrank .eq. 0) then
-        call system("cat "//trim(projectname)//"_2016.damqt_?? > "//trim(projectname)//"_2016.damqt")
-        call system("rm -f "//trim(projectname)//"_2016.damqt_??")
-        call system("cat "//trim(projectname)//"_2016.dmqtv_?? > "//trim(projectname)//"_2016.dmqtv")
-        call system("rm -f "//trim(projectname)//"_2016.dmqtv_??")
-        call system("cat "//trim(projectname)//".mltmod_?? > "//trim(projectname)//".mltmod")
-        call system("rm -f "//trim(projectname)//".mltmod_??")
-        call system("rm -f "//trim(projectname)//".den_??")
+        base = trim(projectname)//"_2016.damqt"
+        output = base
+        call gather_binary_files(base, output, ierr)
+        if (ierr .ne. 0) then
+            call error(ierr,'Error gathering files '//trim(base))
+        endif
+        base = trim(projectname)//"_2016.dmqtv"
+        output = base
+        call gather_binary_files(base, output, ierr)
+        if (ierr .ne. 0) then
+            call error(ierr,'Error gathering files '//trim(base))
+        endif
+        base = trim(projectname)//".mltmod"
+        output = base
+        call gather_text_files(base, output, ierr)
+        if (ierr .ne. 0) then
+            call error(ierr,'Error gathering files '//trim(base))
+        endif
+        base = trim(projectname)//".den"
+        call remove_files(base, ierr)
     endif
     call MPI_FINALIZE(ierr)
     stop

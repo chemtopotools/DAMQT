@@ -67,6 +67,7 @@ END MODULE
     USE DAM320_D
     USE DAM320_CONST_D
     USE DAM320_DATA_D
+    USE DAMQT_UTILS
     USE DAMPOT320_D
     USE DAMISOPOT320_D
     USE PARALELO
@@ -78,7 +79,7 @@ END MODULE
     integer(KINT) :: inamelist(1)
     real(KREAL) :: xmax, xmin, ymax, ymin, zmax, zmin
     real(KREAL) :: rnamelist(3)
-
+    character(len=256) :: base
     
     namelist / options / contourval, filename, gridname, geomthr, iswindows, langstrom, lbinary, lmaxrep, &
         longoutput, lvalence, umbrlargo
@@ -662,10 +663,10 @@ END MODULE
     else
         outrootname = gridname(1:len_trim(gridname)-4)
     endif
-    write(straux,"(i3)") myrank
+    write(straux,"(i2.2)") myrank
     iuni = 10
-    vertfile = trim(outrootname)//"_"//trim(adjustl(straux))//".vrttmp"
-    indfile = trim(outrootname)//"_"//trim(adjustl(straux))//".indtmp"
+    vertfile = trim(outrootname)//".vrttmp"//"_"//trim(adjustl(straux))
+    indfile  = trim(outrootname)//".indtmp"//"_"//trim(adjustl(straux))
 #if _WIN32
     open (unit=iuni, file=trim(vertfile), form='binary', carriagecontrol='NONE', iostat=ierr)
     if (ierr .ne. 0) then
@@ -785,9 +786,9 @@ END MODULE
         if (abort .eq. 0) then
             iuni = 10
             do i = 0, nprocs-1
-                write(straux,"(i3)") i
-                vertfile = trim(outrootname)//"_"//trim(adjustl(straux))//".vrttmp"
-                indfile = trim(outrootname)//"_"//trim(adjustl(straux))//".indtmp"
+                write(straux,"(i2.2)") i
+                vertfile = trim(outrootname)//".vrttmp"//"_"//trim(adjustl(straux))
+                indfile  = trim(outrootname)//".indtmp"//"_"//trim(adjustl(straux))
 #if _WIN32
                 open (unit=iuni+2*i, file=trim(vertfile), form='binary', carriagecontrol='NONE', iostat=ierr)
                 if (ierr .ne. 0) then
@@ -961,10 +962,10 @@ END MODULE
                 contourval, volume, volume*0.148184534296, surftot, surftot*0.280028297329d0
             write(6,"(/'Highest error in potential, absolute = ', e10.3, ' relative = ', e10.3,/)") errabs, errabs / contourval 
         endif
-        vertfile = trim(outrootname)//"_*.vrttmp"
-        indfile = trim(outrootname)//"_*.indtmp"
-        call system("rm -f "//trim(vertfile))
-        call system("rm -f "//trim(indfile))
+        base = trim(outrootname)//".vrttmp"
+        call remove_single_file(base, ierr)
+        base = trim(outrootname)//".indtmp"
+        call remove_single_file(base, ierr)
     endif
     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
     if (myrank .eq. 0) tiempo = dtime(tarray)

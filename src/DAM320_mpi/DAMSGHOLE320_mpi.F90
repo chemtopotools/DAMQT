@@ -1,18 +1,18 @@
 !  Copyright 2013-2021, Jaime Fernandez Rico, Rafael Lopez, Ignacio Ema,
 !  Guillermo Ramirez, Anmol Kumar, Sachin D. Yeole, Shridhar R. Gadre
-! 
+!
 !  This file is part of DAM320.
-! 
+!
 !  DAM320 is free software: you can redistribute it and/or modify
 !  it under the terms of the GNU General Public License as published by
 !  the Free Software Foundation, either version 3 of the License, or
 !  (at your option) any later version.
-! 
+!
 !  DAM320 is distributed in the hope that it will be useful,
 !  but WITHOUT ANY WARRANTY; without even the implied warranty of
 !  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !  GNU General Public License for more details.
-! 
+!
 !  You should have received a copy of the GNU General Public License
 !  along with DAM320.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -28,7 +28,7 @@
 ! #define DBLPRCGRID    ! Uncomment this line  if double precision grid is wanted
 !===============================================================================================
 !                 MODULE DAMSGHOLE320_D
-!=============================================================================================== 
+!===============================================================================================
 MODULE DAMSGHOLE320_D
     USE DAM320_D
     USE DAM320_CONST_D
@@ -53,7 +53,7 @@ MODULE DAMSGHOLE320_D
     real(KREAL) :: areatot, apostot, anegtot, fdevtot, fmed, fmedneg, fmedpos, fvarneg, fvarpos, fvartot
 #ifdef DBLPRCGRID
     real(KREAL) :: aux4, blue4, bux4, v4, drvxtot4, drvytot4, drvztot4, green4, red4
-    real(KREAL) :: x4, xini4, xfin4, y4, yini4, yfin4, z4, zini4, zfin4 
+    real(KREAL) :: x4, xini4, xfin4, y4, yini4, yfin4, z4, zini4, zfin4
     real(KREAL), allocatable :: gradient4(:), vertices4(:,:), vtot4(:)
     integer(KINT), parameter :: i0 = 0
 #else
@@ -71,6 +71,7 @@ END MODULE
     USE DAM320_D
     USE DAM320_CONST_D
     USE DAM320_DATA_D
+    USE DAMQT_UTILS
     USE DAMPOT320_D
     USE DAMSGHOLE320_D
     USE PARALELO
@@ -82,8 +83,8 @@ END MODULE
     integer(KINT) :: inamelist(1)
     real(KREAL) :: xmax, xmin, ymax, ymin, zmax, zmin
     real(KREAL) :: rnamelist(5)
+    character(len=256) :: base
 
-    
     namelist / options / contourval, filename, gridname, geomthr, iswindows, langstrom, lbinary, ldebug, lexact, &
         lmaxrep, longoutput, lsghole, lvalence, separation, thrslocal, topcolor, umbrlargo
     call MPI_INIT(ierr)
@@ -130,7 +131,7 @@ END MODULE
     if (myrank .ne. 0) then
         ltimeprocs = lnamelist(1)
     endif
-       
+
     allocate(interpolmat(2,12), tritable(16,256), stat = ierr)
     if (ierr .ne. 0) then
         write(6,"('Memory error when allocating interpolmat and tritable in processor ',i3)") myrank
@@ -141,8 +142,8 @@ END MODULE
     CALL MPI_BCAST(abortroot,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     if (abortroot .gt. 0) then
         call error(1,'Stop')
-    endif 
-    
+    endif
+
     interpolmat = reshape((/1,2,3,1,5,6,7,5,1,2,3,4,2,3,4,4,6,7,8,8,5,6,7,8/),(/12,2/))
     tritable = reshape((/ &
        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,9,4,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,10,0,0,0,0,0,0,0,0,0,0,0,0,0,                &
@@ -232,7 +233,7 @@ END MODULE
        2,4,9,10,2,9,0,0,0,0,0,0,0,0,0,0,1,10,2,0,0,0,0,0,0,0,0,0,0,0,0,0,1,4,9,0,0,0,0,0,0,0,0,0,0,0,0,0,               &
        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0    /),(/16,256/))
 
-    if (myrank .eq. 0) then   
+    if (myrank .eq. 0) then
         read(5,OPTIONS)
         read(5,*) projectname
         write(6,"(1x,'project name : ',a,/,1x,'==============')") projectname
@@ -241,7 +242,7 @@ END MODULE
             write(6,"('Threshold for local extrema must be in the range (0.2,0.99]. Sets it to 0.9' )")
             thrslocal = 0.9d0
         endif
-            
+
         if (iswindows) then
             dirsep = "\\"
             i = index(projectname,dirsep,.true.)    ! Checks position of last directory name separator
@@ -266,7 +267,7 @@ END MODULE
             endif
             gridname = projectname(1:i)//trim(gridname)
         endif
-        
+
         if (len_trim(filename).ne.0) then
             filename = projectname(1:i)//trim(filename)
         endif
@@ -278,7 +279,7 @@ END MODULE
                     call system ("gunzip "//trim(projectname)//".den.gz")
             endif
         endif
-            
+
 #ifdef DBLPRCGRID
         write(6,"(/'Computation in double precision',/)")
 #endif
@@ -289,7 +290,7 @@ END MODULE
         else
             write(6,"(/'Potential computed from density matrix and basis set')")
         endif
-        
+
         lnamelist(1) = langstrom
         lnamelist(2) = lbinary
         lnamelist(3) = lcolor
@@ -302,7 +303,7 @@ END MODULE
         inamelist(1) = lmaxrep
 
         rnamelist(1) = contourval
-        rnamelist(2) = geomthr 
+        rnamelist(2) = geomthr
         rnamelist(3) = topcolor
         rnamelist(4) = umbrlargo
         rnamelist(5) = thrslocal
@@ -314,24 +315,24 @@ END MODULE
     CALL MPI_BCAST(inamelist,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     CALL MPI_BCAST(rnamelist,5,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
     if (myrank .ne. 0) then
-        langstrom  = lnamelist(1) 
-        lbinary    = lnamelist(2) 
-        lcolor     = lnamelist(3) 
-        longoutput = lnamelist(4) 
-        lsghole    = lnamelist(5) 
-        iswindows  = lnamelist(6) 
+        langstrom  = lnamelist(1)
+        lbinary    = lnamelist(2)
+        lcolor     = lnamelist(3)
+        longoutput = lnamelist(4)
+        lsghole    = lnamelist(5)
+        iswindows  = lnamelist(6)
         lvalence   = lnamelist(7)
         lexact     = lnamelist(8)
 
         lmaxrep    = inamelist(1)
 
         contourval = rnamelist(1)
-        geomthr    = rnamelist(2) 
-        topcolor   = rnamelist(3) 
-        umbrlargo  = rnamelist(4) 
+        geomthr    = rnamelist(2)
+        topcolor   = rnamelist(3)
+        umbrlargo  = rnamelist(4)
         thrslocal  = rnamelist(5)
     endif
-        
+
     inquire(file=trim(gridname), exist=lgrid, iostat=ierr)
     if (myrank .eq. 0 .and. ierr .ne. 0) then
         write(6,"('Grid file named ',a,' not found in processor ',i3)") trim(gridname), myrank
@@ -399,9 +400,9 @@ END MODULE
     if (abortroot .gt. 0) then
         call error(1,'Stop')
     endif
-    
+
     if (myrank .eq. 0) write(6,"(/'Number of points in grid: nx = ', i4, ' ny = ', i4, ' nz = ', i4)") nx, ny, nz
-       
+
     if (iopt(1) .eq. 3)  then   ! single precision data
         read(iuni, iostat=ierr) zini4, zfin4, yini4, yfin4, xini4, xfin4
         if (ierr .ne. 0) then
@@ -424,7 +425,7 @@ END MODULE
     if (abortroot .gt. 0) then
         call error(1,'Stop')
     endif
-    
+
     if (langstrom) then
         xini = xini * angstromtobohr
         xfin = xfin * angstromtobohr
@@ -433,12 +434,12 @@ END MODULE
         zini = zini * angstromtobohr
         zfin = zfin * angstromtobohr
     endif
-    
-            
+
+
     if (myrank .eq. 0) write(6,"(/'Grid dimensions (bohr):',/3x,'xini = ', e17.10, ' xfin = ', e17.10, &
         /3x,'yini = ', e17.10, ' yfin = ', e17.10, &
         /3x,'zini = ', e17.10, ' zfin = ', e17.10, /)") xini, xfin, yini, yfin, zini, zfin
-        
+
     dltx = (xfin - xini) / (nx - 1)
     dlty = (yfin - yini) / (ny - 1)
     dltz = (zfin - zini) / (nz - 1)
@@ -456,11 +457,11 @@ END MODULE
     if (abortroot .gt. 0) then
         call error(1,'Stop')
     endif
-    
-    
+
+
     if (myrank .eq. 0) write(6,"('dltx = ', e17.10, ' dlty = ', e17.10, ' dltz = ', e17.10)") dltx, dlty, dltz
-    
-    
+
+
 !    Allocates buffers for para_range
     allocate(istav(0:nprocs), iendv(0:nprocs-1), stat = ierr)
     if (ierr .ne. 0) then
@@ -472,9 +473,9 @@ END MODULE
     if (abortroot .gt. 0) then
         call error(1,'Stop')
     endif
-    
+
     call para_range(nz)
-    
+
 !     Read grid points
     if (iopt(1) .eq. 3)  then   ! single precision grid
         allocate (grid(npoints), grid4(npoints), stat = ierr)
@@ -496,7 +497,7 @@ END MODULE
         if (ierr .ne. 0) then
             write(6,"('Error ' i5, ' allocating grid in processor ', i3)") ierr, myrank
             abort= 1
-        else   
+        else
             read(iuni, iostat=ierr) grid
             if (ierr .ne. 0) then
                 write(6,"('Error ' i5, ' reading grid points from file ',a,' in processor ', i3)") ierr, trim(gridname), myrank
@@ -524,7 +525,7 @@ END MODULE
     if (abortroot .gt. 0) then
         call error(1,'Stop')
     endif
-    
+
     allocate (fvoxel(8), xvoxel(8), yvoxel(8), zvoxel(8), stat = ierr)
     if (ierr .ne. 0) then
         write(6,"('Error ' i5, ' allocating fvoxel, xvoxel, yvoxel, zvoxel in processor ', i3)") ierr, myrank
@@ -535,7 +536,7 @@ END MODULE
     if (abortroot .gt. 0) then
         call error(1,'Stop')
     endif
-        
+
     call consta     !   Computes auxiliary constants
 
 !     Compute triangles surface
@@ -549,49 +550,49 @@ END MODULE
         y = yini
         do iy = 1, ny-1
             x = xini
-            kntgrid = (iy-1)*nx + (iz-1)*nx*ny 
+            kntgrid = (iy-1)*nx + (iz-1)*nx*ny
             do ix = 1, nx-1
                 knt = knt + 1
-                kntgrid = kntgrid + 1             
+                kntgrid = kntgrid + 1
                 xvoxel(1) = x
                 yvoxel(1) = y
                 zvoxel(1) = z+dltz
                 fvoxel(1) = grid(kntgrid+nx*ny)
-                
+
                 xvoxel(2) = x+dltx
                 yvoxel(2) = y
                 zvoxel(2) = z+dltz
                 fvoxel(2) = grid(kntgrid+nx*ny+1)
-                
+
                 xvoxel(3) = x+dltx
                 yvoxel(3) = y+dlty
                 zvoxel(3) = z+dltz
                 fvoxel(3) = grid(kntgrid+nx*ny+nx+1)
-                
+
                 xvoxel(4) = x
                 yvoxel(4) = y+dlty
                 zvoxel(4) = z+dltz
                 fvoxel(4) = grid(kntgrid+nx*ny+nx)
-                
+
                 xvoxel(5) = x
                 yvoxel(5) = y
                 zvoxel(5) = z
                 fvoxel(5) = grid(kntgrid)
-                
+
                 xvoxel(6) = x+dltx
                 yvoxel(6) = y
                 zvoxel(6) = z
                 fvoxel(6) = grid(kntgrid+1)
-                
+
                 xvoxel(7) = x+dltx
                 yvoxel(7) = y+dlty
                 zvoxel(7) = z
                 fvoxel(7) = grid(kntgrid+nx+1)
-                
+
                 xvoxel(8) = x
                 yvoxel(8) = y+dlty
                 zvoxel(8) = z
-                fvoxel(8) = grid(kntgrid+nx)               
+                fvoxel(8) = grid(kntgrid+nx)
                 icube = 1
                 if (fvoxel(1).lt.contourval) icube = icube + 1
                 if (fvoxel(2).lt.contourval) icube = icube + 2
@@ -644,14 +645,14 @@ END MODULE
                         voltetrahed = surftrian * sqrt(dot_product(xyz-xyztetr(:,0),xyz-xyztetr(:,0))) * ri(3)
                         volume = volume + voltetrahed
                     endif
-                enddo             
+                enddo
                 x = x + dltx
             enddo
             y = y + dlty
         enddo
         z = z + dltz
     enddo
-  
+
     call readdamqtsghole        !    Reads file .damqt  (generated by DAM2016)
 
     if (lexact) then
@@ -661,7 +662,7 @@ END MODULE
                 abort = 1
         endif
     endif
-    
+
     CALL MPI_REDUCE(abort,abortroot,1,MPI_INTEGER,MPI_SUM,0,MPI_COMM_WORLD,ierr)
     CALL MPI_BCAST(abortroot,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     if (abortroot .gt. 0) then
@@ -690,7 +691,7 @@ END MODULE
     if (abortroot .gt. 0) then
         call error(1,'Stop')
     endif
-    
+
     allocate (gradient(3*kntvert), vtot(kntvert), stat = ierr)
     if (ierr .ne. 0) then
         write(6,"('Error ' i5, ' allocating gradient and vtot in processor ', i3)") ierr, myrank
@@ -702,7 +703,7 @@ END MODULE
         call error(1,'Stop')
     endif
 
-!     writes file with the values of MESP over MED isosurface 
+!     writes file with the values of MESP over MED isosurface
     outrootname = ""
     if (len_trim(filename).ne.0) then
         outrootname = trim(filename)//"-d"
@@ -710,10 +711,10 @@ END MODULE
         outrootname = gridname(1:len_trim(gridname)-4)
     endif
 
-    write(straux,"(i3)") myrank
+    write(straux,"(i2.2)") myrank
     iuni = 10
-    vertfile = trim(outrootname)//"_"//trim(adjustl(straux))//".vrttmp"
-    indfile = trim(outrootname)//"_"//trim(adjustl(straux))//".indtmp"
+    vertfile = trim(outrootname)//".vrttmp"//"_"//trim(adjustl(straux))
+    indfile  = trim(outrootname)//".indtmp"//"_"//trim(adjustl(straux))
 #if _WIN32
     open (unit=iuni, file=trim(vertfile), form='binary', carriagecontrol='NONE', iostat=ierr)
     if (ierr .ne. 0) then
@@ -789,7 +790,7 @@ END MODULE
         if (lexact) then
             call GTOexactmesp(x, y, z, vn, ve, vtot(i))
         endif
-        
+
 !         Normalizes the gradient
         aux = sqrt(drvxtot*drvxtot+drvytot*drvytot+drvztot*drvztot)
         if (aux .lt. 1.d-12) then
@@ -797,12 +798,12 @@ END MODULE
         else
             drvxtot = drvxtot / aux ; drvytot = drvytot / aux ; drvztot = drvztot / aux
         endif
-        gradient(3*(i-1)+1:3*i) = (/ drvxtot, drvytot, drvztot /)   
-    enddo 
+        gradient(3*(i-1)+1:3*i) = (/ drvxtot, drvytot, drvztot /)
+    enddo
     aux4 = errabs
     write(iuni) aux4
 !         writes the vertex data to vertices temporal file in unit iuni
-    do i = 1, kntvert   
+    do i = 1, kntvert
         x4 = vertices(1,i); y4 = vertices(2,i); z4 = vertices(3,i)
         drvxtot4 = gradient(3*(i-1)+1);  drvytot4 = gradient(3*(i-1)+2);  drvztot4 = gradient(3*i)
         v4 = vtot(i)
@@ -831,7 +832,7 @@ END MODULE
         vminabs = 1.d90
         surftot = cero
         volume = cero
-!     reads temporal files and writes file with the values of MESP over MED isosurface 
+!     reads temporal files and writes file with the values of MESP over MED isosurface
         outrootname = ""
         if (len_trim(filename).ne.0) then
             outrootname = trim(filename)//"-d"
@@ -847,9 +848,9 @@ END MODULE
         if (abort .eq. 0) then
             iuni = 10
             do i = 0, nprocs-1
-                write(straux,"(i3)") i
-                vertfile = trim(outrootname)//"_"//trim(adjustl(straux))//".vrttmp"
-                indfile = trim(outrootname)//"_"//trim(adjustl(straux))//".indtmp"
+                write(straux,"(i2.2)") i
+                vertfile = trim(outrootname)//".vrttmp"//"_"//trim(adjustl(straux))
+                indfile  = trim(outrootname)//".indtmp"//"_"//trim(adjustl(straux))
 #if _WIN32
                 open (unit=iuni+2*i, file=trim(vertfile), form='binary', carriagecontrol='NONE', iostat=ierr)
                 if (ierr .ne. 0) then
@@ -858,7 +859,7 @@ END MODULE
                     exit
                 endif
                 if (abort .eq. 0) then
-                    open (unit=iuni+2*1+1, file=trim(indfile), form='binary', carriagecontrol='NONE', iostat=ierr)
+                    open (unit=iuni+2*i+1, file=trim(indfile), form='binary', carriagecontrol='NONE', iostat=ierr)
                     if (ierr .ne. 0) then
                         write(6,"('Error ', i5,' opening file ',a)") ierr, trim(indfile)
                         abort= 1
@@ -933,7 +934,7 @@ END MODULE
                 i2 = i2 + nind(i)
                 knt = knt + nvert(i)
             enddo
-            
+
             outrootname = ""
             if (len_trim(filename).ne.0) then
                 outrootname = trim(filename)//"-d"
@@ -944,16 +945,17 @@ END MODULE
             if (lexact) then
                 straux = trim(straux)//"_exact"
             endif
-
-            outdebugname = trim(outrootname)//"_"//trim(adjustl(straux))//".debug"
-            open (unit=1234, file=trim(outdebugname), iostat=ierr)
-            if (ierr .ne. 0) then
-                write(6,"('Error ', i5,' opening file ',a)") ierr, trim(outdebugname)
-                write(6,"('Debug will be written to file fort.1234')")
+            if (ldebug) then
+                outdebugname = trim(outrootname)//"_"//trim(adjustl(straux))//".debug"
+                open (unit=1234, file=trim(outdebugname), iostat=ierr)
+                if (ierr .ne. 0) then
+                    write(6,"('Error ', i5,' opening file ',a)") ierr, trim(outdebugname)
+                    write(6,"('Debug will be written to file fort.1234')")
+                endif
             endif
 
             if (lbinary) then
-                if (lcolor) outcolorname = trim(outrootname)//"_"//trim(adjustl(straux))//".srf"
+                if (lcolor)  outcolorname  = trim(outrootname)//"_"//trim(adjustl(straux))//".srf"
                 if (lsghole) outsgholename = trim(outrootname)//"_"//trim(adjustl(straux))//".sgh"
 #if _WIN32
                 if (lcolor) then
@@ -963,7 +965,7 @@ END MODULE
                         abort= 1
                     endif
                 endif
-            
+
                 if (abort .eq. 0 .and. lsghole) then
                     open (unit=iuni+2*nprocs+1, file=outsgholename, form='binary', carriagecontrol='NONE', iostat=ierr)
                     if (ierr .ne. 0) then
@@ -979,7 +981,7 @@ END MODULE
                         abort= 1
                     endif
                 endif
-            
+
                 if (abort .eq. 0 .and. lsghole) then
                     open (unit=iuni+2*nprocs+1, file=outsgholename, form='binary', carriagecontrol='NONE', iostat=ierr)
                     if (ierr .ne. 0) then
@@ -995,7 +997,7 @@ END MODULE
                         abort= 1
                     endif
                 endif
-            
+
                 if (abort .eq. 0 .and. lsghole) then
                     open (unit=iuni+2*nprocs+1, file=outsgholename, form='unformatted', access='stream', iostat=ierr)
                     if (ierr .ne. 0) then
@@ -1014,7 +1016,7 @@ END MODULE
                     endif
                 endif
                 if (abort .eq. 0 .and. lsghole) then
-                    outsgholename = trim(outrootname)//"_"//trim(adjustl(straux))//".sgh_txt"
+                    outsgholename = trim(outrootname)//"_"//trim(adjustl(straux)//".sgh_txt")
                     open (unit=iuni+2*nprocs+1, file=outsgholename, iostat=ierr)
                     if (ierr .ne. 0) then
                         write(6,"('Error ', i5,' reading file ',a)") ierr, trim(outsgholename)
@@ -1023,7 +1025,7 @@ END MODULE
                 endif
             endif
         endif
-        
+
         if (abort .eq. 0) then
             if (lbinary) then
                 if (lcolor) then
@@ -1065,11 +1067,11 @@ END MODULE
                 ymin = min(ymin,y)
                 zmax = max(zmax,z)
                 zmin = min(zmin,z)
-                drvxtot = gradient4(3*(i-1)+1) ; drvytot = gradient4(3*(i-1)+2) ; drvztot = gradient4(3*i)     
+                drvxtot = gradient4(3*(i-1)+1) ; drvytot = gradient4(3*(i-1)+2) ; drvztot = gradient4(3*i)
                 if (lbinary) then
                     x4 = x; y4 = y; z4 = z; drvxtot4 = drvxtot; drvytot4 = drvytot; drvztot4 = drvztot;
                     if (lcolor) then
-                        aux = vtot4(i) 
+                        aux = vtot4(i)
                         call color_generator(aux, topcolor, red, green, blue)
                         red4 = red; green4 = green; blue4 = blue
                         write(iuni+2*nprocs) x4, y4, z4, drvxtot4, drvytot4, drvztot4, red4, green4, blue4
@@ -1086,7 +1088,7 @@ END MODULE
                 endif
             enddo
         endif
-        
+
 !     Writes triangles indices to file
         if (abort .eq. 0) then
             if (lbinary) then
@@ -1096,7 +1098,7 @@ END MODULE
                 if (lcolor) write(iuni+2*nprocs,"(21(1x,i7))") indices(1:kntind)
                 if (lsghole) write(iuni+2*nprocs+1,"(21(1x,i7))") indices(1:kntind)
             endif
-            write(6,"(/3x,i9,' triangles generated for contour ',e12.5)") kntind/3, contourval 
+            write(6,"(/3x,i9,' triangles generated for contour ',e12.5)") kntind/3, contourval
             write(6,"(3x,'Number of vertices = ',i9)") kntvert
             write(6,"(3x,'Number of indices = ',i9)") kntind
             write(straux,"(e9.2)") contourval
@@ -1104,10 +1106,10 @@ END MODULE
                 &/5x,'Molecular volume / bohr^3 = ', e12.5, 5x,' Molecular volume / A^3 = ', e12.5, &
                 &/5x,'Molecular surface / bohr^2 = ', e12.5, 5x,' Molecular surface / A^2 = ', e12.5)") &
                 contourval, volume, volume*0.148184534296, surftot, surftot*0.280028297329d0
-            write(6,"(/'Highest error in density, absolute = ', e10.3, ' relative = ', e10.3,/)") errabs, errabs / contourval 
+            write(6,"(/'Highest error in density, absolute = ', e10.3, ' relative = ', e10.3,/)") errabs, errabs / contourval
             write(6,"('Highest value of potential = ', e12.5)") vmax
             write(6,"('Lowest value of potential  = ', e12.5)") vmin
-    
+
 !     Prepares data for histograms
 
             dlthistinv = uno / dlthist
@@ -1123,8 +1125,8 @@ END MODULE
             xhist(minhist) = minhist * dlthist
             do i = minhist+1, maxhist
                 xhist(i) = xhist(i-1) + dlthist
-            enddo            
-             
+            enddo
+
 !     Search regions with local maxima and minima
 
             thresmax = thrslocal * vmax
@@ -1146,7 +1148,7 @@ END MODULE
 
             write(6,"(/'Number of regions with local maxima (higher than mesp = ', e9.2, ') found = ', i3)") &
                 thresmax, nmaxregions
-            
+
 !     Writes number of regions with local maxima to file
             if (lbinary) then
                 if (lcolor) write(iuni+2*nprocs) nmaxregions
@@ -1178,7 +1180,7 @@ END MODULE
                     endif
                 enddo
             endif
-                  
+
 !     Searches local minima in the mesh and computes local histogram
 
             write(6,"(/'Number of regions with local minima (lower than mesp = ', e9.2, ') found = ', i3)") &
@@ -1219,14 +1221,14 @@ END MODULE
                 if (lcolor) close(iuni+2*i)
                 if (lsghole) close(iuni+2*i+1)
             enddo
-            
+
             surfpos = cero
             surfneg = cero
-    
+
 !     Computes global histogram
-    
+
             call makehistogram
-    
+
 !         Writes the mesp total and partial histograms  to file
 
             outrootname = ""
@@ -1261,11 +1263,11 @@ END MODULE
             write(6,"(5x,'Total surface with mesp lower than  ', e12.5, ' = ', e12.5, 3x,'(',e9.2,'%)')") &
                 thresmin, surfneg, 100.d0 * surfneg / surftot
         endif
-            
+
 !     Computes the mean and variances of positive, negative and total MESP
 
         call statMESP
-           
+
         write(6,"(//30('*'),2x,'MESP statistics',2x,30('*'),/)")
         write(6,"(/5x,'Total surface with positive MESP = ', e12.5)") apostot
         write(6,"( 5x,'Total surface with negative MESP = ', e12.5)") anegtot
@@ -1277,17 +1279,18 @@ END MODULE
         write(6,"( 5x,'Negative MESP variance = ', e12.5)") fvarneg
         write(6,"(/5x,'MESP average deviation = ', e12.5)") fdevtot
         write(6,"(/5x,'MESP nu parameter = ', e12.5)") fvarpos * fvarneg / (fvartot**2)
-        
+
         outrootname = ""
         if (len_trim(filename).ne.0) then
             outrootname = trim(filename)//"-d"
         else
             outrootname = gridname(1:len_trim(gridname)-4)
         endif
-        vertfile = trim(outrootname)//"_*.vrttmp"
-        indfile = trim(outrootname)//"_*.indtmp"
-        call system("rm -f "//trim(vertfile))
-        call system("rm -f "//trim(indfile))
+        base = trim(outrootname)//".vrttmp"
+        call remove_files(base, ierr)
+        base = trim(outrootname)//".indtmp"
+        call remove_files(base, ierr)
+
         outrootname = ""
         if (len_trim(filename).ne.0) then
             outrootname = trim(filename)//"-d"
@@ -1343,7 +1346,7 @@ END MODULE
             write(6,"(' ')")
         endif
     endif
-    
+
     call MPI_FINALIZE(ierr)
     stop
     end
@@ -1819,7 +1822,7 @@ END MODULE
 !
   subroutine makehistmax(jaux)
     USE DAMSGHOLE320_D, vold => vtot, vtot => vtot4, verticesold => vertices, vertices => vertices4
-    implicit none  
+    implicit none
     integer(KINT) :: jaux
 
     j = jaux
@@ -1842,7 +1845,7 @@ END MODULE
         fpos = cero
         if (bux .ge. thresmax) then
             fpos = uno
-        else 
+        else
             if (cux .gt. thresmax) then
                 fpos = dos * ri(3)
             else if (cux .lt. thresmax) then
@@ -1850,7 +1853,7 @@ END MODULE
             else
                 fpos = umed
             endif
-        endif 
+        endif
         surfpos = surfpos + fpos * surftrian
     enddo
     return
@@ -1860,7 +1863,7 @@ END MODULE
 !
   subroutine makehistmin(jaux)
     USE DAMSGHOLE320_D, vold => vtot, vtot => vtot4, verticesold => vertices, vertices => vertices4
-    implicit none    
+    implicit none
     integer(KINT) :: jaux
 
     j = jaux
@@ -1883,7 +1886,7 @@ END MODULE
         fneg = cero
         if (aux .le. thresmin) then
             fneg = uno
-        else 
+        else
             if (cux .lt. thresmin) then
                 fneg = dos * ri(3)
             else if (cux .gt. thresmin) then
@@ -1891,7 +1894,7 @@ END MODULE
             else
                 fneg = umed
             endif
-        endif 
+        endif
         surfneg = surfneg + fneg * surftrian
     enddo
 
@@ -1903,7 +1906,7 @@ END MODULE
   subroutine color_generator(v, topcolor, red, green, blue)
     USE DAM320_D, only: KREAL
     implicit none
-    real(KREAL) :: blue, green, red, topcolor, vmax, vmin, v 
+    real(KREAL) :: blue, green, red, topcolor, vmax, vmin, v
     if (v .ge. topcolor) then
         red = 1.d0
         green = 0.d0
@@ -1923,7 +1926,7 @@ END MODULE
     endif
     return
     end
-    
+
 !**********************************************************************
 !    subroutine consta
 !
@@ -2090,7 +2093,7 @@ END MODULE
         write(6,*) 'Memory error in proc ', myrank, ' when opening file '//trim(projectname)//"_2016.damqt"
         abort = 1
         return
-    endif 
+    endif
     open (unit=11, file=trim(projectname)//"_2016.dmqtv", form='binary', action = 'read', carriagecontrol='NONE', iostat=ierr)
     if (ierr .ne. 0) then
         write(6,*) 'Memory error in proc ', myrank, ' when opening file '//trim(projectname)//"_2016.dmqtv"
@@ -2124,7 +2127,7 @@ END MODULE
         return
     endif
 #endif
-    if (myrank .eq. 0 .and. longoutput) write(6,"('Opens files ', a, ' and ', a)") trim(projectname)//"_2016.damqt", &      
+    if (myrank .eq. 0 .and. longoutput) write(6,"('Opens files ', a, ' and ', a)") trim(projectname)//"_2016.damqt", &
         trim(projectname)//"_2016.dmqtv"
     read(10) ncen, nbas, ncaps
     nsize = nsize - sizeof(ncen) - sizeof(nbas) - sizeof(ncaps)
@@ -2314,7 +2317,7 @@ END MODULE
     endif
 
     if (myrank .eq. 0 .and. longoutput) write(6,"('Size of icfposd   = ', i15, ' bytes')") size(icfposd)
-    
+
     nsize = nsize - sizeof(icfposd(:,1)) * ncenbas
 
     allocate(xajustd(nintervaj,ncen), stat = ierr)
@@ -2325,7 +2328,7 @@ END MODULE
     endif
 
     if (myrank .eq. 0 .and. longoutput) write(6,"('Estimated highest size of xajustd   = ', i15, ' bytes')") size(xajustd)
-    
+
     nsize = nsize - sizeof(xajustd(:,1)) * ncenbas
 
     allocate(cfajust(nsize/8), stat = ierr)
@@ -2404,14 +2407,14 @@ END MODULE
 !    multipolar moments
         read(11) rmultip(1:lmtop,ia)
 !    Reads the integrals:
-!        Qg(la,ma,i;ia) = 
+!        Qg(la,ma,i;ia) =
 !            Integrate[ r**(2*la+2) * fradtr[la,ma,r], {r,l_(i-1),l_i}]
-!        qp(la,ma,i;ia) = 
+!        qp(la,ma,i;ia) =
 !            Integrate[ r * fradtr[la,ma,r], {r,l_(i-1),l_i}]
 !    and computes from them and stores the integrals:
-!        QGacum(la,ma,i;ia) = 
+!        QGacum(la,ma,i;ia) =
 !            Integrate[ r**(2*la+2) * fradtr[la,ma,r], {r,0,l_i}]
-!        qpacum(la,ma,i;ia) = 
+!        qpacum(la,ma,i;ia) =
 !            Integrate[ r * fradtr[la,ma,r], {r,l_(i-1),Infinity}]
 !    where  ia  labels the center (atom),
         read(11) Qgpart(1:nintervaj*lmtop)
@@ -2444,7 +2447,7 @@ END MODULE
         write(6,"('Size of llargo   = ', i15, ' bytes')") size(llargo)
         write(6,"('Size of Qllargo   = ', i15, ' bytes')") size(Qllargo)
     endif
-    
+
 !    long-range radii
 
     allocate(umedpow(0:lmaxexp), stat = ierr)
@@ -2523,7 +2526,7 @@ END MODULE
                 enddo
             enddo
         enddo
-        if (myrank .eq. 0) then 
+        if (myrank .eq. 0) then
             if (longoutput) then
                 write(6,"('Long-range radius for center ',i4,' (',a2,') = ', e12.5, ' lcorto = ', 30(i3))") &
                         ia, atmnms(nzn(ia)), rlargo(ia), lcorto(1:nintervaj,ia)
@@ -2597,7 +2600,7 @@ END MODULE
     deallocate(umedpow)
     return
     end
-        
+
 !   ***************************************************************
 
   subroutine densrepr(ia, x, y, z, denrep, dendrvx, dendrvy, dendrvz)
@@ -2822,7 +2825,7 @@ END MODULE
     vtot = vnucl + vel
     return
     end
-    
+
 !
 !   **************************************************************************************
 !     Calculates the electrostatic potential from the density expansion at point (x,y,z)
@@ -2833,7 +2836,7 @@ END MODULE
     USE DAMSGHOLE320_D, fpos_ori => fpos, fneg_ori => fneg
     implicit none
     real(KREAL) :: Ac(3), Bc(3), Cc(3)
-    real(KREAL) :: fA, fB, fC, area, apos, aneg, fdev, fneg, fnegsq, fnegtot, fnegsqtot, fpos, fpossq, fpostot, fpossqtot 
+    real(KREAL) :: fA, fB, fC, area, apos, aneg, fdev, fneg, fnegsq, fnegtot, fnegsqtot, fpos, fpossq, fpostot, fpossqtot
 
     areatot = cero
     apostot = cero
@@ -2847,8 +2850,8 @@ END MODULE
         Ac(:) = vertices4(:,indices(i))
         Bc(:) = vertices4(:,indices(i+1))
         Cc(:) = vertices4(:,indices(i+2))
-        fA = vtot4(indices(i)) 
-        fB = vtot4(indices(i+1)) 
+        fA = vtot4(indices(i))
+        fB = vtot4(indices(i+1))
         fC = vtot4(indices(i+2))
         call sub_statMESP(Ac, Bc, Cc, fA, fB, fC, area, apos, aneg, fpos, fneg, fpossq, fnegsq)
         areatot = areatot + area
@@ -2863,27 +2866,27 @@ END MODULE
     if (apostot .gt. cero) then
         fmedpos = fpostot / apostot
         fvarpos = fpossqtot / apostot - fmedpos**2
-    else 
+    else
         fmedpos = cero
         fvarpos = cero
     endif
     if (anegtot .gt. cero) then
         fmedneg = fnegtot / anegtot
         fvarneg = fnegsqtot / anegtot - fmedneg**2
-    else 
+    else
         fmedneg = cero
         fvarneg = cero
     endif
     fvartot = fvarpos + fvarneg
-    
+
     fdevtot = cero
     do i = 1, kntind, 3
         if (indices(i) .eq. indices(i+1) .or. indices(i) .eq. indices(i+2) .or. indices(i+1) .eq. indices(i+2) ) cycle
         Ac(:) = vertices4(:,indices(i))
         Bc(:) = vertices4(:,indices(i+1))
         Cc(:) = vertices4(:,indices(i+2))
-        fA = vtot4(indices(i)) 
-        fB = vtot4(indices(i+1)) 
+        fA = vtot4(indices(i))
+        fB = vtot4(indices(i+1))
         fC = vtot4(indices(i+2))
         call sub_MESP_dev(Ac, Bc, Cc, fA, fB, fC, fmed, fdev)
         fdevtot = fdevtot + fdev
@@ -2892,26 +2895,26 @@ END MODULE
 
     return
     end
-  
+
 !   ------------------------------------------------------------------------------------------
- 
-!  subroutine sub_statMESP: 
+
+!  subroutine sub_statMESP:
 !       receives:   three points, Ac, Bc, Cc, defining the vertices of a triangle and the values of a function in the points, fA, fB, fC
 !       returns:    the total area, and the areas for positive values of f (apos) and negative values of f (aneg),
 !                   the integrals of positive f (fpos) and negative f (fneg) in their respective surfaces
 !                   the integrals of the squares of positive f (fpossq) and negative f (fnegsq) in their respective surfaces
 !
 !       Computations are made with the assumption that f is linearly fitted to the three points (a plane)
-!  
+!
   subroutine sub_statMESP(Ac, Bc, Cc, fA, fB, fC, area, apos, aneg, fpos, fneg, fpossq, fnegsq)
     implicit none
     logical :: leqsgn
     integer(4) :: i, j
     real(8) :: Ac(3), Bc(3), Cc(3), Paux(3)
     real(8) :: a, aAMNB, aMNC, aneg, apos, area, aux, b, c
-    real(8) :: fA, fAMNB, fB, fC, fMNC, fneg, fnegsq, fpos, fpossq, fsqAMNB, fsqMNC 
+    real(8) :: fA, fAMNB, fB, fC, fMNC, fneg, fnegsq, fpos, fpossq, fsqAMNB, fsqMNC
     real(8) :: u2, u3, v3
-    
+
     leqsgn = .true.
     if (fA*fB .lt. 0.d0) then
         if (fB*fC .lt. 0.d0) then
@@ -2926,11 +2929,11 @@ END MODULE
     else if (fB*fC .lt. 0.d0) then
         leqsgn = .false.
     endif
-    
+
     u2 = sqrt(dot_product(Bc-Ac,Bc-Ac))
     u3 = dot_product(Cc-Ac,Bc-Ac) / u2
     v3 = sqrt(dot_product(Cc-Ac-u3*(Bc-Ac)/u2,Cc-Ac-u3*(Bc-Ac)/u2))
-    
+
     area = u2 * v3 * 0.5d0
     if (leqsgn) then
         aAMNB = 0.d0
@@ -2948,7 +2951,7 @@ END MODULE
         fsqAMNB = (-fA*fB * (fA**2 + fA*fB + fB**2) + (fA+fB) * (fA**2+fB**2) * fC) * u2 * v3 &
             / (12.d0 * (fA-fC) * (fC-fB))
     endif
-    
+
     if (fC .lt. 0) then
         apos = aAMNB
         aneg = aMNC
@@ -2965,25 +2968,25 @@ END MODULE
         fpossq = fsqMNC
     endif
     return
-    end    
-      
+    end
+
 !   ------------------------------------------------------------------------------------------
- 
-!  subroutine sub_MESP_dev: 
+
+!  subroutine sub_MESP_dev:
 !       receives:   three points, Ac, Bc, Cc, defining the vertices of a triangle and the values of a function in the points, fA, fB, fC
 !       returns:    |f - fmed|
 !
 !       Computations are made with the assumption that f is linearly fitted to the three points (a plane)
-!  
+!
   subroutine sub_MESP_dev(Ac, Bc, Cc, fA, fB, fC, fmed, fdev)
     implicit none
     logical :: leqsgn
     integer(4) :: i, j
     real(8) :: Ac(3), Bc(3), Cc(3), Paux(3)
     real(8) :: a, aAMNB, aMNC, aneg, apos, area, aux, b, c
-    real(8) :: fA, fAMNB, fB, fC, fdev, fmed, fMNC, fsqAMNB, fsqMNC 
+    real(8) :: fA, fAMNB, fB, fC, fdev, fmed, fMNC, fsqAMNB, fsqMNC
     real(8) :: u2, u3, v3
-    
+
     leqsgn = .true.
     if (fA*fB .lt. 0.d0) then
         if (fB*fC .lt. 0.d0) then
@@ -2998,11 +3001,11 @@ END MODULE
     else if (fB*fC .lt. 0.d0) then
         leqsgn = .false.
     endif
-    
+
     u2 = sqrt(dot_product(Bc-Ac,Bc-Ac))
     u3 = dot_product(Cc-Ac,Bc-Ac) / u2
     v3 = sqrt(dot_product(Cc-Ac-u3*(Bc-Ac)/u2,Cc-Ac-u3*(Bc-Ac)/u2))
-    
+
     area = u2 * v3 * 0.5d0
     if (leqsgn) then
         aAMNB = 0.d0
@@ -3015,12 +3018,12 @@ END MODULE
         aAMNB = (fA*fC + fB*fC - fA*fB) * u2 * v3 / (2.d0 * (fA-fC) * (fC-fB))
         fAMNB = aAMNB * ((fA+fB)**2 * fC - fA * fB * (fA+fB+fC)) / (3.d0 * (fA*fC + fB*fC - fA*fB) )
     endif
-    
+
     fdev = abs(fAMNB - fmed * aAMNB) + abs(fMNC - fmed * aMNC)
-    
+
     return
     end
-    
+
 !   ***************************************************************
 
   subroutine derivzlm(lmax, idimzlm, zlma, zlmadx, zlmady, zlmadz)
@@ -3111,7 +3114,7 @@ END MODULE
     enddo
     return
     end
-    
+
 !   ***************************************************************
 
   subroutine dzlm2y(lmax, idimzlm, zlma, zlmady, zlmadz)
@@ -3176,7 +3179,7 @@ END MODULE
     enddo
     return
     end
-        
+
 !   ***************************************************************
 
   subroutine dzlm2z(lmax, idimzlm, zlma, zlmadz)
@@ -3368,8 +3371,8 @@ END MODULE
                     l12 = l1 + l2
                     kmax = l12 / 2
                     rn = rnor(i2) * rn1
-! 						Reads the block of density matrix and rotates it to the AB alligned system. Loads the result in matrix  roblk.
-! 						Angular normalization factors are introduced at the end of loading process.
+! 	Reads the block of density matrix and rotates it to the AB alligned system. Loads the result in matrix  roblk.
+! 	Angular normalization factors are introduced at the end of loading process.
                     do m1 = -l1, l1
                         indf1 = nf(i1)+l1+m1
                         do m2 = -l2, l2

@@ -32,7 +32,7 @@
     implicit none
     integer(KINT) :: i, iatom, j, k, knt, kntlist, ltab, mtab, ncntab, nlist, ntab, ntabtot
     real(KREAL) :: dltr, r, rfin, rini
-    character(60) :: filename
+    character(255) :: filename
     integer(KINT), parameter :: mxnlist = 100
     real(KREAL4) :: tarray(2), tiempo, dtime
     real(KREAL) :: rlist(mxnlist)
@@ -123,16 +123,16 @@
         endif
     enddo doi
     nsel = k
-    open(11,file=trim(projectname)//".frad",form='formatted')
+    open(11,file=trim(filename)//".frad",form='formatted')
     call tabulafrad(ltab, mtab, ntabtot, rtab)
     close(11)
     if (lderiv) then
-        open(11,file=trim(projectname)//".drvfrad",form='formatted')
+        open(11,file=trim(filename)//".drvfrad",form='formatted')
         call tabuladeriv1(ltab, mtab, ntabtot, rtab)
         close(11)
     endif
     if (lderiv2) then
-        open(11,file=trim(projectname)//".drv2frad",form='formatted')
+        open(11,file=trim(filename)//".drv2frad",form='formatted')
         call tabuladeriv2(ltab, mtab, ntabtot, rtab)
         close(11)
     endif

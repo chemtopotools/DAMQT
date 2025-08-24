@@ -28,6 +28,7 @@
     USE DAM320_D
     USE DAM320_CONST_D
     USE DAM320_DATA_D
+    USE DAMQT_UTILS
     USE DAMFIELD320_D
     USE ICOSAHEDRON
     USE icosahedron
@@ -50,6 +51,8 @@
     character(256) :: filelines
     logical :: lnucleo, lexist
     character*4 :: strbux
+    character(len=256) :: base, output
+
     namelist / options / basintol, dlt0, filename, filelines, icntlines, ioplines3D, iswindows, largo, lextralines &
             , lmaxrep, longoutput, lplot2d, lvalence, nlines, nlinpernuc, numpnt, planeA, planeB, planeC &
             , thresh, umbrlargo, usalto, uvratio, rlines &
@@ -401,8 +404,12 @@
     CALL MPI_REDUCE(kntcorto,kntcortotot,1,MPI_INTEGER,MPI_SUM,0,MPI_COMM_WORLD,ierr)
 
     if (myrank .eq. 0) then
-        call system("cat "//trim(filename)//".cam_?? > "//trim(filename)//".cam")
-        call system("rm -f "//trim(filename)//".cam_??")
+        base = trim(filename)//".cam"
+        output = base
+        call gather_text_files(base, output, ierr)
+        if (ierr .ne. 0) then
+            call error(ierr,'Error gathering files '//trim(base))
+        endif
         write(6,"(/7x,'STATISTICS',/)")
         write(6,"('Number of computed points = ', i9)") npuntot
         write(6,"('Number of long-range contributions = ', i9)") kntlargotot

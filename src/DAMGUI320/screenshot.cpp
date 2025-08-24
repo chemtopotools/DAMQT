@@ -108,6 +108,10 @@ void screenshot::capturexyz(QVector3D v){
     qDebug() << "captured position = " << v;
 }
 
+void screenshot::setCaptureFolder(QString a){
+    CaptureFolder = a;
+}
+
 //          Capture layouts
 
 void screenshot::create_capture_layouts(){

@@ -4,7 +4,8 @@ project(DAM320_mpi)
 
 enable_language (C Fortran)
 
-find_package(MPI REQUIRED)   # This is redundant (it has been previously checked), but convenient to remember that MPI is necessary
+find_package(MPI COMPONENTS Fortran REQUIRED)
+
 add_definitions(${MPI_Fortran_COMPILE_FLAGS})
 include_directories(${MPI_Fortran_INCLUDE_PATH})
 link_directories(${MPI_Fortran_LIBRARIES})
@@ -32,8 +33,13 @@ add_library(DAMGLOBAL_mpi_mods DAM320_GLOBAL_mpi.F90)
 # Create binaries
 # ===============
 foreach (p ${DAM320_mpi_PROGRAMS})
-	add_executable(${p}.exe "${p}.F90")
-	list (APPEND DAM320_mpi_EXECUTABLES ${p}.exe )
+    if (UNIX AND NOT CYGWIN)
+        add_executable(${p}.exe "${p}.F90")
+        list (APPEND DAM320_mpi_EXECUTABLES ${p}.exe )
+    else (UNIX AND NOT CYGWIN)  # To prevent double .exe extension
+        add_executable(${p} "${p}.F90")
+        list (APPEND DAM320_mpi_EXECUTABLES ${p} )
+    endif (UNIX AND NOT CYGWIN)
 endforeach (p)
 
 # Links binaries to modules
